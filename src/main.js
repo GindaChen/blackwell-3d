@@ -246,6 +246,8 @@ function updateHover() {
   if (annotator.hover(pick(), roots[current])) overlayDirty = true;
 }
 
+document.fonts?.ready.then(() => { overlayDirty = true; });
+
 // ---- boot ----
 setTimeout(() => {
   const params = new URLSearchParams(location.search);

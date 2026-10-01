@@ -2,7 +2,7 @@
 // parts involved, and drawing simple directional flow lines with labels.
 import * as THREE from 'three';
 import { BUSES } from '../annotations/connections.js';
-import { targetBox, anchorOf, arcPoints, makeLine, isShown, isDescendant } from '../annotations/annotator.js';
+import { targetBox, anchorOf, arcPoints, makeLine, isShown, isDescendant, labelWidth } from '../annotations/annotator.js';
 import { STEPS } from './steps.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -240,13 +240,13 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
       if (!k) continue;
       const cx = sx / k;
       const y = (L.points.length > 1 ? minY : sy / k) - 16;
-      const tw = L.text.length * 6.6 + 16;
+      const tw = labelWidth(L.text, 'hud-svg tour-svg') + 18;
       const tx = Math.min(Math.max(cx - tw / 2, 8), innerWidth - tw - 8);
       let ty = Math.min(Math.max(y - 10, 8), innerHeight - 24);
       // nudge labels apart so they never stack on top of each other
       for (let tries = 0; tries < 8 && hits({ x0: tx, y0: ty, x1: tx + tw, y1: ty + 18 }); tries++) ty -= 22;
       placed.push({ x0: tx, y0: ty, x1: tx + tw, y1: ty + 18 });
-      out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="18" fill="rgba(14,16,16,0.9)"/><text x="${tx + 8}" y="${ty + 12.5}" fill="${L.color}">${esc(L.text)}</text></g>`;
+      out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="5" width="${tw}" height="19" fill="rgba(14,16,16,0.9)"/><text x="${tx + 9}" y="${ty + 13.5}" fill="${L.color}">${esc(L.text)}</text></g>`;
       if (L.virtual) {
         const [vx, vy] = project(L.points[0]);
         out += `<circle cx="${vx}" cy="${vy}" r="3.5" fill="#fff"/>`;

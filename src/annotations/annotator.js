@@ -96,6 +96,31 @@ export function makeLine(points, color) {
 const sameTarget = (a, b) => a && b && a.obj === b.obj && (a.instanceId ?? -1) === (b.instanceId ?? -1);
 
 // ---------------------------------------------------------------------------------------------
+/**
+ * Exact rendered width of a label in an SVG layer (uses the same CSS as the real tags, so it
+ * follows the UI font, weight and width). Cached per layer class + text.
+ */
+const _measureCache = new Map();
+let _measureSvg = null;
+export function labelWidth(text, layerClass = 'hud-svg') {
+  const key = layerClass + '|' + text;
+  if (_measureCache.has(key)) return _measureCache.get(key);
+  if (!_measureSvg) {
+    _measureSvg = document.createElementNS(SVG_NS, 'svg');
+    _measureSvg.setAttribute('aria-hidden', 'true');
+    _measureSvg.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;width:10px;height:10px';
+    document.body.appendChild(_measureSvg);
+  }
+  _measureSvg.setAttribute('class', layerClass);
+  _measureSvg.innerHTML = '<g class="tag"><text></text></g>';
+  const t = _measureSvg.querySelector('text');
+  t.textContent = text;
+  const w = t.getComputedTextLength();
+  // only cache once the web font has loaded, otherwise fallback-font widths would stick
+  if (document.fonts?.status === 'loaded') _measureCache.set(key, w);
+  return w;
+}
+
 export function createAnnotator({ renderer, camera }) {
   const overlay = new THREE.Scene();
   const pathGroup = new THREE.Group();
@@ -269,7 +294,7 @@ export function createAnnotator({ renderer, camera }) {
     const role = current.entry?.role || p.info || '';
     const rows = current.links.map((L) => {
       const bus = BUSES[L.link.bus] || { name: '', color: '#fff' };
-      return `<li><span class="sw" style="background:${bus.color};box-shadow:0 0 8px ${bus.color}"></span><span class="lk">${esc(L.link.label)}</span><span class="bus">${esc(bus.name)}</span></li>`;
+      return `<li><span class="sw" style="background:${bus.color}"></span><span class="lk">${esc(L.link.label)}</span><span class="bus">${esc(bus.name)}</span></li>`;
     }).join('');
     card.innerHTML = `
       <div class="c-title">${esc(p.label)}</div>
@@ -358,10 +383,10 @@ export function createAnnotator({ renderer, camera }) {
         soft.push({ x0: u.x0 - 8, y0: u.y0 - 24, x1: u.x1 + 8, y1: u.y1 + 8 });
         if (i || !L.link.group) return;
         const label = L.targets.length > 1 && !/×/.test(L.link.group) ? `${L.link.group} ×${L.targets.length}` : L.link.group;
-        const tw = label.length * 6.4 + 14;
+        const tw = labelWidth(label, 'hud-svg') + 16;
         const tx = Math.min(Math.max(u.x0 - 4, 6), innerWidth - tw - 6);
         const ty = Math.min(Math.max(u.y0 - 22, 6), innerHeight - 22);
-        out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="16" fill="rgba(14,16,16,0.9)"/><text x="${tx + 7}" y="${ty + 11.5}" fill="${color}">${esc(label)}</text></g>`;
+        out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="5" width="${tw}" height="17" fill="rgba(14,16,16,0.9)"/><text x="${tx + 8}" y="${ty + 12}" fill="${color}">${esc(label)}</text></g>`;
       });
     }
     // source bracket
