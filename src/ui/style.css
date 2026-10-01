@@ -22,9 +22,7 @@ html, body {
 
 .hud { position: fixed; z-index: 2; }
 .hud-title { top: 22px; left: 26px; pointer-events: none; max-width: min(520px, calc(100vw - 32px)); }
-.eyebrow { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
-.hud-title h1 { margin: 6px 0 4px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
-.hud-title p { margin: 0; color: var(--muted); font-size: 13px; }
+.hud-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 
 .hud-views { top: 22px; right: 22px; display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; padding: 4px; backdrop-filter: blur(10px); }
 button { font: inherit; color: var(--text); background: transparent; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; }

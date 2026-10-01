@@ -38,7 +38,6 @@ const MM = 0.1;
 const views = {
   superchip: {
     title: 'Vera Rubin Superchip',
-    sub: '1 Vera CPU · 2 Rubin GPUs · 16 HBM4 stacks · 8 SOCAMM LPDDR5X modules',
     cams: {
       hero: { pos: [27, 33, 40], target: [0, 0, 1.5] },
       top: { pos: [0, 62, 0.01], target: [0, 0, 0] },
@@ -49,7 +48,6 @@ const views = {
   },
   tray: {
     title: 'Vera Rubin NVL72 Compute Tray',
-    sub: '2 Superchips · 4 Rubin GPUs · 8 ConnectX-9 SuperNICs · BlueField-4 DPU · cable-free, fanless',
     cams: {
       hero: { pos: [62, 58, 88], target: [0, 0, 4] },
       top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
@@ -119,7 +117,6 @@ function setView(name, { instant = false } = {}) {
   for (const [k, r] of Object.entries(roots)) r.visible = k === name;
   build(name).visible = true;
   document.getElementById('view-title').textContent = v.title;
-  document.getElementById('view-sub').textContent = v.sub;
   document.body.classList.toggle('view-tray', name === 'tray');
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   applyToggles();
