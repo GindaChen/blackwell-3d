@@ -1,15 +1,15 @@
-// Guided tour controller: steps through STEPS, switching views/toggles, framing the camera on the
-// parts involved, and drawing simple directional flow lines with labels.
+// Guided tour controller: steps through the current model's tour (see TOURS), switching toggles,
+// framing the camera on the parts involved, and drawing simple directional flow lines with labels.
 import * as THREE from 'three';
 import { BUSES } from '../annotations/connections.js';
 import { targetBox, anchorOf, arcPoints, makeLine, isShown, isDescendant, labelWidth } from '../annotations/annotator.js';
-import { STEPS } from './steps.js';
+import { TOURS } from './steps.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const _v = new THREE.Vector3();
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createTour({ camera, overlay, getRoot, setView, getDisplay, setDisplay, flyTo, invalidate, onModeChange = () => {} }) {
+export function createTour({ camera, overlay, getRoot, getView, setView, getDisplay, setDisplay, flyTo, invalidate, onModeChange = () => {} }) {
   const group = new THREE.Group();
   overlay.add(group);
 
@@ -34,16 +34,20 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
   document.body.appendChild(panel);
   const $ = (c) => panel.querySelector(c);
   const dots = $('.tp-dots');
-  STEPS.forEach((_, i) => {
-    const d = document.createElement('button');
-    d.type = 'button';
-    d.className = 'tp-dot';
-    d.setAttribute('aria-label', `Go to step ${i + 1}`);
-    d.addEventListener('click', () => go(i));
-    dots.appendChild(d);
-  });
+  function buildDots() {
+    dots.replaceChildren(...steps.map((_, i) => {
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'tp-dot';
+      d.setAttribute('aria-label', `Go to step ${i + 1}`);
+      d.addEventListener('click', () => go(i));
+      return d;
+    }));
+  }
 
   let active = false;
+  let view = 'tray'; // model the running tour belongs to
+  let steps = TOURS[view];
   let index = 0;
   let saved = null;
   let flows = [];   // [{ pts: Vector3[], color, label?, end: Vector3 }]
@@ -259,7 +263,7 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
   // panel + navigation
   // ------------------------------------------------------------------------------------------
   function fillPanel(step) {
-    $('.tp-step').textContent = `Step ${index + 1} of ${STEPS.length}`;
+    $('.tp-step').textContent = `Step ${index + 1} of ${steps.length}`;
     $('.tp-title').textContent = step.title;
     $('.tp-text').textContent = step.text;
     const buses = [...new Set((step.flows || []).map((f) => f.bus))];
@@ -267,15 +271,15 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
       .map((b) => `<span><i style="background:${BUSES[b]?.color}"></i>${esc(BUSES[b]?.name || b)}</span>`)
       .join('');
     $('.tp-prev').disabled = index === 0;
-    $('.tp-next').textContent = index === STEPS.length - 1 ? 'Finish' : 'Next →';
+    $('.tp-next').textContent = index === steps.length - 1 ? 'Finish' : 'Next →';
     [...dots.children].forEach((d, i) => d.classList.toggle('on', i === index));
   }
 
   function go(i) {
     if (!active) return;
-    index = Math.max(0, Math.min(STEPS.length - 1, i));
-    const step = STEPS[index];
-    setView(step.view || 'tray');
+    index = Math.max(0, Math.min(steps.length - 1, i));
+    const step = steps[index];
+    setView(view);
     setDisplay({ ...saved, ...(step.display || {}) });
     fillPanel(step);
     applyViewOffset();
@@ -286,6 +290,9 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
   function start(at = 0) {
     if (active) return go(at);
     active = true;
+    view = TOURS[getView()] ? getView() : 'tray';
+    steps = TOURS[view];
+    buildDots();
     saved = { ...getDisplay() };
     document.body.classList.add('touring');
     panel.hidden = false;
@@ -305,7 +312,7 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
   }
 
   $('.tp-prev').addEventListener('click', () => go(index - 1));
-  $('.tp-next').addEventListener('click', () => (index === STEPS.length - 1 ? stop() : go(index + 1)));
+  $('.tp-next').addEventListener('click', () => (index === steps.length - 1 ? stop() : go(index + 1)));
   window.addEventListener('keydown', (e) => {
     if (!active) return;
     if (e.key === 'ArrowRight') go(index + 1);
@@ -317,7 +324,7 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
     start, stop, frame,
     get active() { return active; },
     /** Re-resolve flows (e.g. after a resize or an explode/toggle change). */
-    refresh() { if (active) build(STEPS[index], { reframe: false }); },
+    refresh() { if (active) build(steps[index], { reframe: false }); },
     resize() {
       applyViewOffset();
       for (const c of group.children) c.material.resolution?.set(innerWidth, innerHeight);

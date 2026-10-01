@@ -185,6 +185,7 @@ const tour = createTour({
   camera,
   overlay: annotator.overlay,
   getRoot: () => roots[current],
+  getView: () => current,
   setView: (name) => { if (name !== current) setView(name, { instant: true }); },
   getDisplay: () => ({ ...display }),
   setDisplay: (d) => {
