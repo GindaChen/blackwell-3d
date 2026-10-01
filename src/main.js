@@ -8,6 +8,7 @@ import { veraDieMaterials } from './parts/chips.js';
 import { easeInOut } from './lib/util.js';
 import { createAnnotator, partOf, isShown } from './annotations/annotator.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { createTour } from './tour/tour.js';
 
 const container = document.getElementById('viewport');
 const studio = createStudio(container);
@@ -162,11 +163,28 @@ function applyToggles() {
   annotator.refresh();
   invalidate({ shadows: true });
 }
-$('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); annotator.refresh(); invalidate({ shadows: true }); });
+$('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); annotator.refresh(); tour.refresh(); invalidate({ shadows: true }); });
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.view !== current) setView(b.dataset.view);
 }));
 document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => flyTo(views[current].cams[b.dataset.cam])));
+
+// ---- guided tour (see src/tour) ----
+const tour = createTour({
+  camera,
+  overlay: annotator.overlay,
+  getRoot: () => roots[current],
+  setView: (name) => { if (name !== current) setView(name, { instant: true }); },
+  getDisplay: () => ({ ...display }),
+  setDisplay: (d) => {
+    Object.assign(display, d);
+    for (const k of Object.keys(display)) $(k).checked = display[k];
+    applyToggles();
+  },
+  flyTo,
+  invalidate: () => { overlayDirty = true; invalidate({ shadows: true }); },
+});
+$('tour-start').addEventListener('click', () => { annotator.unpin(); tour.start(); });
 
 // ---- hover / pin: connection pathways + callout (see src/annotations) ----
 const ray = new THREE.Raycaster();
@@ -200,6 +218,7 @@ function pick() {
   return null;
 }
 function updateHover() {
+  annotator.enabled = !tour.active;
   if (!mouseDirty || !current || buttons) return;
   mouseDirty = false;
   if (annotator.hover(pick(), roots[current])) overlayDirty = true;
@@ -214,6 +233,7 @@ setTimeout(() => {
   for (const k of Object.keys(display)) $(k).checked = display[k];
   applyToggles();
   if (params.get('cam')) { const c = views[current].cams[params.get('cam')]; camera.position.set(...c.pos); controls.target.set(...c.target); }
+  if (params.has('tour')) tour.start(Math.max(0, (+params.get('tour') || 1) - 1));
   invalidate({ shadows: true });
   $('loading').classList.add('done');
   setTimeout(() => $('loading').remove(), 800);
@@ -229,7 +249,7 @@ function invalidate({ shadows = false } = {}) {
   if (shadows) renderer.shadowMap.needsUpdate = true;
 }
 controls.addEventListener('change', () => invalidate());
-window.addEventListener('resize', () => { annotator.resize(); invalidate(); });
+window.addEventListener('resize', () => { annotator.resize(); tour.resize(); invalidate(); });
 
 function loop(now) {
   const moving = !!tween;
@@ -257,6 +277,7 @@ function loop(now) {
     renderer.setRenderTarget(null);
     blit.render(renderer);
     annotator.frame();
+    tour.frame();
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(annotator.overlay, camera);

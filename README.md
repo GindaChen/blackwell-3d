@@ -8,6 +8,23 @@ talks to: NVLink, NVLink-C2C, HBM4, LPDDR5X, PCIe, network, power, coolant and m
 connected part is bracketed and labelled. A callout card sits off to the side with a leader line, so it
 never covers the part. Click to pin a selection while you orbit or explode. Press Esc or click empty space to release it.
 
+**Take the guided tour.** Twelve short steps follow an AI model through the NVL72 compute tray:
+1. Plugging into the rack.
+2. Power-on and boot.
+3. External networking.
+4. The cable-free midplane.
+5. Loading weights into CPU memory.
+6. NVLink-C2C into the GPUs.
+7. Weights in HBM4.
+8. A request arriving over GPUDirect RDMA.
+9. Execution on the tensor cores.
+10. NVLink 6 scale-up across the rack.
+11. Results going back out.
+
+Each step frames the camera on the parts involved and draws directional, colour-coded flows. You can still
+orbit, and ← / → or the arrows step through the tour. Esc or "Exit tour" returns to free exploration, and
+`?tour=5` opens the tour at a given step.
+
 ## Views
 
 - **Superchip**: one Vera CPU, two Rubin GPUs (2 compute dies + 8 HBM4 each), 8 SOCAMM2 LPDDR5X
@@ -47,6 +64,8 @@ Everything is generated in code. There are no downloaded meshes and no image tex
 | Draw-call optimizer (merges static meshes per part) | `src/lib/optimize.js` |
 | Connection graph (roles, links, buses, bandwidths) | `src/annotations/connections.js` |
 | Hover/pin pathways, brackets, callout placement | `src/annotations/annotator.js` |
+| Guided tour steps (text, flows, camera) | `src/tour/steps.js` |
+| Guided tour controller (framing, flow arrows, panel) | `src/tour/tour.js` |
 
 The PCB texture is built from the same placement list as the 3D parts. Every capacitor sits on its own
 pads and every package has its own silkscreen outline.

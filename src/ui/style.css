@@ -21,7 +21,7 @@ html, body {
 #viewport canvas { display: block; }
 
 .hud { position: fixed; z-index: 2; }
-.hud-title { top: 22px; left: 26px; pointer-events: none; max-width: min(520px, calc(100vw - 32px)); }
+.hud-title { top: 22px; left: 26px; pointer-events: none; display: grid; justify-items: start; gap: 10px; max-width: min(520px, calc(100vw - 32px)); }
 .hud-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 
 .hud-views { top: 22px; right: 22px; display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; padding: 4px; backdrop-filter: blur(10px); }
@@ -55,6 +55,30 @@ body:not(.view-tray) .tray-only { display: none; }
 .c-links .sw { width: 8px; height: 8px; border-radius: 50%; }
 .c-links .bus { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
 .c-hint { margin-top: 9px; font-size: 10.5px; color: #7d837c; }
+
+.tour-start { pointer-events: auto; background: rgba(118, 185, 0, 0.16); color: #c9f27d; border: 1px solid rgba(118, 185, 0, 0.45); padding: 7px 13px; }
+.tour-start:hover { background: rgba(118, 185, 0, 0.26); }
+body.touring .hud-views, body.touring .hud-controls, body.touring .hud-foot, body.touring .tour-start { display: none; }
+
+.tour-panel { position: fixed; z-index: 4; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(560px, calc(100vw - 32px));
+  background: rgba(9, 11, 11, 0.9); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 12px 16px 10px;
+  backdrop-filter: blur(10px); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55); }
+.tp-head { display: flex; justify-content: space-between; align-items: center; }
+.tp-step { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.tp-exit { font-size: 12px; color: var(--muted); padding: 4px 8px; }
+.tp-title { margin: 4px 0 3px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.tp-text { margin: 0; font-size: 13px; line-height: 1.45; color: #cfd4cc; }
+.tp-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 11.5px; color: var(--muted); }
+.tp-legend:empty { display: none; }
+.tp-legend i { display: inline-block; width: 14px; height: 2px; margin-right: 6px; vertical-align: middle; border-radius: 1px; }
+.tp-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
+.tp-nav .tp-prev, .tp-nav .tp-next { background: rgba(255, 255, 255, 0.06); min-width: 84px; }
+.tp-nav .tp-next { background: rgba(118, 185, 0, 0.2); color: #d8f5a2; }
+.tp-nav button:disabled { opacity: 0.35; cursor: default; }
+.tp-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.tp-dot { width: 8px; height: 8px; padding: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.2); }
+.tp-dot.on { background: var(--accent); }
+.tour-svg .tag text { font: 600 11px Inter, system-ui, sans-serif; }
 
 .loading { position: fixed; inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--bg); color: var(--muted); font-size: 13px; transition: opacity 0.6s; }
 .loading.done { opacity: 0; pointer-events: none; }

@@ -44,7 +44,7 @@ function ancestorWithId(o, id) {
   }
   return null;
 }
-function isDescendant(o, root) {
+export function isDescendant(o, root) {
   while (o) {
     if (o === root) return true;
     o = o.parent;
@@ -53,7 +53,7 @@ function isDescendant(o, root) {
 }
 
 /** A target is a tagged object, or one instance of a tagged InstancedMesh. */
-function targetBox(t, out = new THREE.Box3()) {
+export function targetBox(t, out = new THREE.Box3()) {
   if (t.instanceId != null) {
     const mesh = t.obj;
     if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
@@ -63,9 +63,36 @@ function targetBox(t, out = new THREE.Box3()) {
   }
   return out.setFromObject(t.obj);
 }
-function anchorOf(box, out = new THREE.Vector3()) {
+export function anchorOf(box, out = new THREE.Vector3()) {
   return out.set((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
 }
+export function arcPoints(a, b, out) {
+  const d = a.distanceTo(b);
+  const h = THREE.MathUtils.clamp(d * 0.16, 0.2, 6); // low, gentle arc
+  const p1 = a.clone().add(new THREE.Vector3(0, h, 0));
+  const p2 = b.clone().add(new THREE.Vector3(0, h, 0));
+  const curve = new THREE.CubicBezierCurve3(a, p1, p2, b);
+  const n = Math.max(16, Math.round(d * 4));
+  const pts = curve.getPoints(n);
+  if (out.length) pts.shift();
+  out.push(...pts);
+  return out;
+}
+
+export function makeLine(points, color) {
+  const geo = new LineGeometry();
+  geo.setPositions(points.flatMap((p) => [p.x, p.y, p.z]));
+  const mat = new LineMaterial({
+    color, linewidth: 1.5, transparent: true, opacity: 0.9,
+    depthTest: false, depthWrite: false, toneMapped: false, worldUnits: false,
+  });
+  mat.resolution.set(innerWidth, innerHeight);
+  const line = new Line2(geo, mat);
+  line.frustumCulled = false;
+  line.renderOrder = 10;
+  return line;
+}
+
 const sameTarget = (a, b) => a && b && a.obj === b.obj && (a.instanceId ?? -1) === (b.instanceId ?? -1);
 
 // ---------------------------------------------------------------------------------------------
@@ -165,33 +192,6 @@ export function createAnnotator({ renderer, camera }) {
       c.geometry.dispose();
       c.material.dispose();
     }
-  }
-
-  function arcPoints(a, b, out) {
-    const d = a.distanceTo(b);
-    const h = THREE.MathUtils.clamp(d * 0.16, 0.2, 6); // low, gentle arc
-    const p1 = a.clone().add(new THREE.Vector3(0, h, 0));
-    const p2 = b.clone().add(new THREE.Vector3(0, h, 0));
-    const curve = new THREE.CubicBezierCurve3(a, p1, p2, b);
-    const n = Math.max(16, Math.round(d * 4));
-    const pts = curve.getPoints(n);
-    if (out.length) pts.shift();
-    out.push(...pts);
-    return out;
-  }
-
-  function makeLine(points, color) {
-    const geo = new LineGeometry();
-    geo.setPositions(points.flatMap((p) => [p.x, p.y, p.z]));
-    const mat = new LineMaterial({
-      color, linewidth: 1.5, transparent: true, opacity: 0.9,
-      depthTest: false, depthWrite: false, toneMapped: false, worldUnits: false,
-    });
-    mat.resolution.set(innerWidth, innerHeight);
-    const line = new Line2(geo, mat);
-    line.frustumCulled = false;
-    line.renderOrder = 10;
-    return line;
   }
 
   function buildPaths() {
@@ -403,14 +403,17 @@ export function createAnnotator({ renderer, camera }) {
   return {
     overlay,
     get active() { return !!current; },
+    /** While disabled (e.g. during the guided tour) hovering does nothing. */
+    enabled: true,
     get pinned() { return pinned; },
     /** Hover from a raycast hit (or null). Ignored while pinned. Returns true if the view changed. */
     hover(hit, root) {
-      if (pinned) return false;
+      if (pinned || !this.enabled) return false;
       if (!hit) return clear();
       return show(hit, root);
     },
     pin(hit, root) {
+      if (!this.enabled) return false;
       if (!hit) { pinned = false; return clear(); }
       pinned = false;
       show(hit, root);
