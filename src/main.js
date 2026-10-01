@@ -236,12 +236,12 @@ function loop(now) {
   const dimChanging = Math.abs(dim - targetDim) > 0.002;
   if (dimChanging) dim += (targetDim - dim) * 0.18;
   else dim = targetDim;
-  if (composed || annotator.active || overlayDirty || dimChanging) {
+  if (composed || overlayDirty || dimChanging) {
     blit.material.uniforms.tDiffuse.value = composer.readBuffer.texture;
     blit.material.uniforms.dim.value = dim;
     renderer.setRenderTarget(null);
     blit.render(renderer);
-    annotator.frame(now);
+    annotator.frame();
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(annotator.overlay, camera);

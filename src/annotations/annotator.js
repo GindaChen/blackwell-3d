@@ -88,23 +88,6 @@ export function createAnnotator({ renderer, camera }) {
   let current = null; // { source: Target, entry, links: [{link, targets:[Target], paths:[Line2...]}] }
   let pinned = false;
   let cardSide = null;
-  let lastT = performance.now();
-
-  const dotTex = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const x = c.getContext('2d');
-    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.35, 'rgba(255,255,255,0.9)');
-    g.addColorStop(0.6, 'rgba(255,255,255,0.25)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = g;
-    x.fillRect(0, 0, 64, 64);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  })();
 
   function buildIndex(root) {
     const byId = new Map();
@@ -179,14 +162,14 @@ export function createAnnotator({ renderer, camera }) {
   function clearPaths() {
     for (const c of [...pathGroup.children]) {
       pathGroup.remove(c);
-      if (!c.isSprite) c.geometry.dispose(); // sprites share one global quad geometry
+      c.geometry.dispose();
       c.material.dispose();
     }
   }
 
   function arcPoints(a, b, out) {
     const d = a.distanceTo(b);
-    const h = THREE.MathUtils.clamp(d * 0.32, 0.35, 14);
+    const h = THREE.MathUtils.clamp(d * 0.16, 0.2, 6); // low, gentle arc
     const p1 = a.clone().add(new THREE.Vector3(0, h, 0));
     const p2 = b.clone().add(new THREE.Vector3(0, h, 0));
     const curve = new THREE.CubicBezierCurve3(a, p1, p2, b);
@@ -197,36 +180,24 @@ export function createAnnotator({ renderer, camera }) {
     return out;
   }
 
-  function makeLine(points, color, { width, dashed, opacity, dashSize }) {
+  function makeLine(points, color) {
     const geo = new LineGeometry();
     geo.setPositions(points.flatMap((p) => [p.x, p.y, p.z]));
     const mat = new LineMaterial({
-      color, linewidth: width, transparent: true, opacity, depthTest: false, depthWrite: false,
-      dashed, dashSize, gapSize: dashSize * 1.6, toneMapped: false, worldUnits: false,
+      color, linewidth: 1.5, transparent: true, opacity: 0.9,
+      depthTest: false, depthWrite: false, toneMapped: false, worldUnits: false,
     });
     mat.resolution.set(innerWidth, innerHeight);
     const line = new Line2(geo, mat);
-    line.computeLineDistances();
     line.frustumCulled = false;
     line.renderOrder = 10;
     return line;
-  }
-
-  function addDot(p, color, size) {
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color, transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false, toneMapped: false, blending: THREE.AdditiveBlending }));
-    s.position.copy(p);
-    s.scale.setScalar(size);
-    s.renderOrder = 11;
-    pathGroup.add(s);
   }
 
   function buildPaths() {
     clearPaths();
     if (!current) return;
     const srcAnchor = anchorOf(targetBox(current.source));
-    const camDist = camera.position.distanceTo(srcAnchor);
-    const dashSize = THREE.MathUtils.clamp(camDist * 0.012, 0.12, 2.2);
-    addDot(srcAnchor, '#ffffff', 0.022);
     for (const L of current.links) {
       const color = new THREE.Color(BUSES[L.link.bus]?.color || '#ffffff');
       const viaAnchors = L.via.map((v) => anchorOf(targetBox(v, _box), new THREE.Vector3()));
@@ -235,10 +206,7 @@ export function createAnnotator({ renderer, camera }) {
         const chain = [srcAnchor.clone(), ...viaAnchors.map((v) => v.clone()), end];
         const pts = [];
         for (let i = 0; i < chain.length - 1; i++) arcPoints(chain[i], chain[i + 1], pts);
-        pathGroup.add(makeLine(pts, color, { width: 5, dashed: false, opacity: 0.18, dashSize }));
-        pathGroup.add(makeLine(pts, color, { width: 2.2, dashed: true, opacity: 0.95, dashSize }));
-        addDot(end, color, 0.016);
-        for (const v of viaAnchors) addDot(v, color, 0.011);
+        pathGroup.add(makeLine(pts, color));
       }
     }
   }
@@ -269,6 +237,25 @@ export function createAnnotator({ renderer, camera }) {
     const kx = Math.min(k, (x1 - x0) / 2.5), ky = Math.min(k, (y1 - y0) / 2.5);
     const d = `M${x0},${y0 + ky}V${y0}H${x0 + kx} M${x1 - kx},${y0}H${x1}V${y0 + ky} M${x1},${y1 - ky}V${y1}H${x1 - kx} M${x0 + kx},${y1}H${x0}V${y1 - ky}`;
     return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+  }
+  /** Greedily merge screen rects closer than `gap` px so adjacent targets share one bracket. */
+  function clusterRects(rects, gap) {
+    const out = rects.map((r) => ({ ...r }));
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < out.length && !merged; i++)
+        for (let j = i + 1; j < out.length; j++) {
+          const a = out[i], b = out[j];
+          if (a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 && a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1) {
+            out[i] = { x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) };
+            out.splice(j, 1);
+            merged = true;
+            break;
+          }
+        }
+    }
+    return out.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0));
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -354,18 +341,22 @@ export function createAnnotator({ renderer, camera }) {
     // targets
     for (const L of current.links) {
       const color = BUSES[L.link.bus]?.color || '#fff';
-      L.targets.forEach((t, i) => {
+      // targets get no frame, just one tag per link placed on its largest cluster
+      const rects = [];
+      for (const t of L.targets) {
         const r = screenRect(targetBox(t, _box));
-        if (r.behind) return;
-        soft.push({ x0: r.x0 - 8, y0: r.y0 - 24, x1: r.x1 + 8, y1: r.y1 + 8 });
-        out += bracket(r, color, 7, 1.3, 3);
-        if (i === 0 && L.link.group) {
-          const label = L.targets.length > 1 && !/×/.test(L.link.group) ? `${L.link.group} ×${L.targets.length}` : L.link.group;
-          const tw = label.length * 6.4 + 14;
-          const tx = Math.min(Math.max(r.x0 - 3, 6), innerWidth - tw - 6);
-          const ty = Math.min(Math.max(r.y0 - 21, 6), innerHeight - 22);
-          out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="16" fill="rgba(8,10,10,0.82)" stroke="${color}" stroke-opacity="0.6"/><text x="${tx + 7}" y="${ty + 11.5}" fill="${color}">${esc(label)}</text></g>`;
-        }
+        if (!r.behind) rects.push(r);
+      }
+      const clusters = clusterRects(rects, 26);
+      if (!clusters.length) continue;
+      clusters.forEach((u, i) => {
+        soft.push({ x0: u.x0 - 8, y0: u.y0 - 24, x1: u.x1 + 8, y1: u.y1 + 8 });
+        if (i || !L.link.group) return;
+        const label = L.targets.length > 1 && !/×/.test(L.link.group) ? `${L.link.group} ×${L.targets.length}` : L.link.group;
+        const tw = label.length * 6.4 + 14;
+        const tx = Math.min(Math.max(u.x0 - 4, 6), innerWidth - tw - 6);
+        const ty = Math.min(Math.max(u.y0 - 22, 6), innerHeight - 22);
+        out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="16" fill="rgba(8,10,10,0.82)" stroke="${color}" stroke-opacity="0.45"/><text x="${tx + 7}" y="${ty + 11.5}" fill="${color}">${esc(label)}</text></g>`;
       });
     }
     // source bracket
@@ -431,12 +422,9 @@ export function createAnnotator({ renderer, camera }) {
     /** Rebuild geometry (after explode/toggles/view changes move things). */
     refresh() { if (current) { if (!isShown(current.source.obj)) return clear(); const s = current.source; const root = indexedRoot; current = null; show(s, root); if (pinned) fillCard(); } },
     reindex() { indexedRoot = null; },
-    /** Per displayed frame: animate dashes and reposition the HUD. */
-    frame(now) {
-      const dt = Math.min(0.1, (now - lastT) / 1000);
-      lastT = now;
+    /** Per displayed frame: reposition the HUD to follow the camera. */
+    frame() {
       if (!current) return;
-      for (const c of pathGroup.children) if (c.material?.isLineMaterial && c.material.dashed) c.material.dashOffset -= dt * c.material.dashSize * 3.2;
       updateHud();
     },
     resize() { for (const c of pathGroup.children) if (c.material?.isLineMaterial) c.material.resolution.set(innerWidth, innerHeight); },
