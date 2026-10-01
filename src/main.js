@@ -19,13 +19,12 @@ const annotator = createAnnotator({ renderer, camera });
 // redrawn every frame without re-rendering the (expensive) scene.
 composer.renderToScreen = false;
 const blit = new FullScreenQuad(new THREE.ShaderMaterial({
-  uniforms: { tDiffuse: { value: null }, dim: { value: 0 } },
+  uniforms: { tDiffuse: { value: null } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float dim; varying vec2 vUv;
-    void main(){ vec4 c = texture2D(tDiffuse, vUv); gl_FragColor = vec4(c.rgb * (1.0 - dim), 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main(){ gl_FragColor = vec4(texture2D(tDiffuse, vUv).rgb, 1.0); }`,
   depthTest: false, depthWrite: false,
 }));
-let dim = 0;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -297,14 +296,8 @@ function loop(now) {
     if (settled) settledFrameDone = true;
     composed = true;
   }
-  // ease the background dim in/out while a component is highlighted
-  const targetDim = annotator.active ? 0.38 : 0;
-  const dimChanging = Math.abs(dim - targetDim) > 0.002;
-  if (dimChanging) dim += (targetDim - dim) * 0.18;
-  else dim = targetDim;
-  if (composed || overlayDirty || dimChanging) {
+  if (composed || overlayDirty) {
     blit.material.uniforms.tDiffuse.value = composer.readBuffer.texture;
-    blit.material.uniforms.dim.value = dim;
     renderer.setRenderTarget(null);
     blit.render(renderer);
     annotator.frame();
