@@ -37,6 +37,8 @@ button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 .presets { justify-content: flex-start; flex-wrap: wrap; gap: 4px; padding-top: 8px; border-top: 1px solid var(--panel-border); margin-top: 4px; }
 .presets button { padding: 5px 9px; font-size: 12px; background: rgba(255, 255, 255, 0.04); }
 
+body:not(.view-tray) .tray-only { display: none; }
+
 .hud-foot { left: 26px; bottom: 20px; color: var(--muted); font-size: 12px; pointer-events: none; }
 
 .hud-svg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; overflow: visible; }

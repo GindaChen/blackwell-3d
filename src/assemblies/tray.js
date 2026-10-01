@@ -599,3 +599,9 @@ export function setCooling(root, on) {
 export function setColdPlateLift(root, lids) {
   root.traverse((o) => { if (o.name === 'gpu-coldplate-lift') o.position.y = lids ? 2.6 : 0; });
 }
+
+// Shared building blocks for other MGX trays (see nvl8.js).
+export {
+  mesh, at, scaleUV, rectPath, roundRectPath, pipe, screwHead, labelTexture, chassis, modPcb, moduleBoard,
+  W as TRAY_W, DEPTH as TRAY_DEPTH, H as TRAY_H, WALL as TRAY_WALL,
+};

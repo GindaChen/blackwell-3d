@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStudio } from './scene/studio.js';
 import { buildSuperchip, setLids } from './assemblies/superchip.js';
 import { buildComputeTray, setCooling, setColdPlateLift } from './assemblies/tray.js';
+import { buildNVL8Tray } from './assemblies/nvl8.js';
 import { veraDieMaterials } from './parts/chips.js';
 import { easeInOut } from './lib/util.js';
 import { createAnnotator, partOf, isShown } from './annotations/annotator.js';
@@ -46,6 +47,16 @@ const views = {
     },
     lift: 0,
   },
+  nvl8: {
+    title: 'HGX Rubin NVL8 GPU Tray',
+    cams: {
+      hero: { pos: [-60, 60, 88], target: [0, 0, 2] },
+      top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
+      front: { pos: [10, 16, 92], target: [0, 2, 20] },
+      close: { pos: [-12, 22, 12], target: [-6, 2, 0] },
+    },
+    lift: 0,
+  },
   tray: {
     title: 'Vera Rubin NVL72 Compute Tray',
     cams: {
@@ -84,6 +95,8 @@ function build(name) {
     sc.position.y = 4.0;
     g.add(sc);
     window.__superchip = sc;
+  } else if (name === 'nvl8') {
+    g.add(buildNVL8Tray());
   } else {
     g.add(buildComputeTray(buildSuperchip));
   }
@@ -117,13 +130,13 @@ function setView(name, { instant = false } = {}) {
   for (const [k, r] of Object.entries(roots)) r.visible = k === name;
   build(name).visible = true;
   document.getElementById('view-title').textContent = v.title;
-  document.body.classList.toggle('view-tray', name === 'tray');
+  document.body.classList.toggle('view-tray', name !== 'superchip');
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   applyToggles();
   applyExplode();
   invalidate({ shadows: true });
   // keep the shadow frustum tight around the visible model for crisp shadows
-  const s = name === 'tray' ? 60 : 30;
+  const s = name === 'superchip' ? 30 : 60;
   const sc = studio.key.shadow.camera;
   sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s;
   sc.updateProjectionMatrix();
@@ -135,9 +148,9 @@ function setView(name, { instant = false } = {}) {
 
 // ---- UI wiring ----
 const $ = (id) => document.getElementById(id);
-// Every component is always shown (lids, cold plates, CPU floorplan); the exploded view reveals
-// what's underneath. URL params (?lids=0 etc.) can still override for debugging.
-const display = { lids: true, cooling: true, floorplan: true };
+// Display toggles (checkboxes in the controls panel; URL params like ?lids=1 can preset them).
+const display = { lids: false, cooling: true, floorplan: false };
+for (const k of Object.keys(display)) $(k).addEventListener('change', (e) => { display[k] = e.target.checked; applyToggles(); });
 function applyToggles() {
   for (const r of Object.values(roots)) {
     setLids(r, display.lids);
@@ -195,9 +208,10 @@ function updateHover() {
 // ---- boot ----
 setTimeout(() => {
   const params = new URLSearchParams(location.search);
-  setView(params.get('view') === 'tray' ? 'tray' : 'superchip', { instant: true });
+  setView(views[params.get('view')] ? params.get('view') : 'superchip', { instant: true });
   if (params.get('explode')) { explodeT = +params.get('explode'); $('explode').value = explodeT; applyExplode(); }
   for (const k of Object.keys(display)) if (params.has(k)) display[k] = params.get(k) !== '0';
+  for (const k of Object.keys(display)) $(k).checked = display[k];
   applyToggles();
   if (params.get('cam')) { const c = views[current].cams[params.get('cam')]; camera.position.set(...c.pos); controls.target.set(...c.target); }
   invalidate({ shadows: true });

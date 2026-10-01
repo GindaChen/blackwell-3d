@@ -15,9 +15,12 @@ never covers the part. Click to pin a selection while you orbit or explode. Pres
 - **Compute tray**: the 1U MGX NVL72 tray. It holds two superchips, four ConnectX-9 SuperNICs per side, a BlueField-4 DPU,
   a management module, power distribution, the midplanes, liquid cold plates, copper plumbing and the rear
   blind-mate coolant/power connectors.
+- **8-GPU tray (HGX Rubin NVL8)**: eight Rubin GPUs on GPU modules over an HGX baseboard with four on-board NVLink 6
+  switches (all-to-all, 3.6 TB/s per GPU), host connectors to a separate CPU tray (Vera or x86), eight black cold
+  plates on a central coolant manifold with quick-disconnect couplings and braided hoses, and rear UQDs, busbar and power.
 
 Controls include an exploded view, GPU heat-spreader lids on or off, the CPU die look (laser-marked
-backside or floorplan), cold plates on or off, and camera presets. URL parameters let you link to a state:
+backside or floorplan), cold plates on or off (both trays), and camera presets. URL parameters let you link to a state:
 `?view=tray&explode=0.6&lids=1&cooling=0&cam=close`.
 
 ## Running
@@ -35,6 +38,7 @@ Everything is generated in code. There are no downloaded meshes and no image tex
 | --- | --- |
 | Superchip layout (measured from the GTC photos at ~0.48 mm/px) | `src/assemblies/superchip.js` |
 | Compute tray layout | `src/assemblies/tray.js` |
+| HGX Rubin NVL8 GPU tray layout | `src/assemblies/nvl8.js` |
 | Chip packages (Rubin GPU, Vera CPU, small packages) | `src/parts/chips.js` |
 | Connectors, SOCAMM, inductors, instancing helper | `src/parts/boardParts.js` |
 | PCB texture set: mask, traces, vias, ENIG pads, silkscreen, normal map | `src/textures/pcb.js` |
@@ -60,5 +64,7 @@ into `reference/images/` for local study.
 - The board and package dimensions are estimates scaled from photos. NVIDIA hasn't published mechanical drawings.
 - Some details are plausible stand-ins rather than confirmed hardware, including passive placement, silkscreen text,
   front-panel port layout, the management and power-distribution modules and the cold-plate plumbing.
+- In the NVL8 tray, the four NVLink switches' location under the manifold spine, the host-connector strip and the
+  GPU-module VRM layout are informed guesses; the cold plates, manifold, couplings, hoses and bezel follow the GTC photo.
 - The GPU dies show a stylised floorplan, as in NVIDIA's own renders. Real dies are covered by a lid or a
   cold plate, and real bare silicon backsides look like dark mirrors.

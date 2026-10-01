@@ -35,6 +35,8 @@ export const CONNECTIONS = {
     links: [
       { to: 'hbm4', scope: 'self', bus: 'hbm', label: '8 HBM4 stacks · 22 TB/s', group: 'HBM4 ×8' },
       { to: 'vera-cpu', scope: 'superchip', bus: 'c2c', label: 'Vera CPU · coherent shared memory', group: 'Vera CPU' },
+      { to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'All 4 NVLink 6 switches · 3.6 TB/s', group: 'NVLink switches' },
+      { to: 'host-conn', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'PCIe Gen6 to the host CPU tray', group: 'Host link' },
       { to: 'nvlink-conn', scope: 'superchip', pick: 'nearest', bus: 'nvlink', label: 'Spine → 72 GPUs · 3.6 TB/s', group: 'NVLink spine' },
       { to: ['cx9', 'midplane-conn'], scope: 'any', pick: 2, via: ['midplane-conn', 'midplane'], bus: 'net', label: '2× ConnectX-9 · 1.6 Tb/s scale-out', group: 'SuperNICs', alt: { 'midplane-conn': { label: 'Out via midplane to 2× ConnectX-9 (1.6 Tb/s)', group: 'To SuperNICs' } } },
       GPU_POWER,
@@ -212,7 +214,7 @@ export const CONNECTIONS = {
     role: 'Converts busbar power to rails for the boards.',
     links: [
       { to: 'busbar', scope: 'any', bus: 'power', label: 'DC in from the rack busbar', group: 'Busbar' },
-      { to: 'superchip', scope: 'any', bus: 'power', label: 'Out to both superchips', group: 'Superchips' },
+      { to: ['superchip', 'gpu-module'], scope: 'any', bus: 'power', label: 'Out to both superchips', group: 'Superchips', alt: { 'gpu-module': { label: 'Out to all 8 GPU modules', group: 'GPU modules' } } },
     ],
   },
   busbar: {
@@ -239,7 +241,7 @@ export const CONNECTIONS = {
     role: 'Liquid flows through it, pulling heat off a GPU.',
     links: [
       { to: 'rubin-gpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools this GPU', group: 'Rubin GPU' },
-      { to: 'uqd', scope: 'any', bus: 'cool', label: 'Supply / return to the rack', group: 'Quick disconnects' },
+      { to: ['gpu-manifold', 'uqd'], scope: 'any', bus: 'cool', label: 'Supply / return to the rack', group: 'Quick disconnects', alt: { 'gpu-manifold': { label: 'Supply / return via the manifold', group: 'Manifold' } } },
     ],
   },
   'cpu-coldplate': {
@@ -263,7 +265,56 @@ export const CONNECTIONS = {
   },
   uqd: {
     role: 'Drip-free blind-mate coupling to the rack coolant manifold.',
-    links: [{ to: 'gpu-coldplate', scope: 'any', bus: 'cool', label: 'Feeds all 4 GPU cold plates', group: 'GPU plates' }],
+    links: [{ to: ['gpu-manifold', 'gpu-coldplate'], scope: 'any', bus: 'cool', label: 'Feeds the GPU cold plates', group: 'GPU plates', alt: { 'gpu-manifold': { label: 'Into the manifold spine', group: 'Manifold' } } }],
+  },
+  // ------------------------------------------------------------------ HGX NVL8 GPU tray
+  nvswitch: {
+    role: 'Lets every GPU talk to every other at full NVLink speed.',
+    links: [
+      { to: 'rubin-gpu', scope: 'any', bus: 'nvlink', label: 'All 8 GPUs · 3.6 TB/s each', group: 'Rubin GPUs' },
+      { to: 'hgx-hmc', scope: 'any', bus: 'mgmt', label: 'Fabric bring-up & telemetry', group: 'HMC' },
+    ],
+  },
+  'host-conn': {
+    role: 'Cables to the separate CPU tray (Vera or x86 host).',
+    links: [
+      { to: 'rubin-gpu', scope: 'any', pick: 4, bus: 'pcie', label: 'PCIe Gen6 from the nearest 4 GPUs', group: 'Rubin GPUs' },
+      { to: 'hgx-hmc', scope: 'any', bus: 'mgmt', label: 'Management sideband', group: 'HMC' },
+    ],
+  },
+  'hgx-hmc': {
+    role: 'Baseboard manager: GPU telemetry, firmware, fabric bring-up.',
+    links: [
+      { to: 'rubin-gpu', scope: 'any', bus: 'mgmt', label: 'All 8 GPUs', group: 'Rubin GPUs' },
+      { to: 'nvswitch', scope: 'any', bus: 'mgmt', label: 'All 4 NVLink switches', group: 'NVLink switches' },
+      { to: 'host-conn', scope: 'any', bus: 'mgmt', label: 'To the host\'s BMC', group: 'Host link' },
+    ],
+  },
+  'hgx-baseboard': {
+    role: 'Wires 8 GPUs to 4 NVLink switches and the host links.',
+    links: [
+      { to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'NVLink 6 switches', group: 'NVLink switches' },
+      { to: 'host-conn', scope: 'any', bus: 'pcie', label: 'Host connectors', group: 'Host link' },
+    ],
+  },
+  'gpu-module': { alias: 'rubin-gpu' },
+  'switch-coldplate': {
+    role: 'Cools the four NVLink 6 switch chips.',
+    links: [{ to: 'nvswitch', scope: 'any', bus: 'cool', label: 'All 4 NVLink switches', group: 'NVLink switches' }],
+  },
+  'gpu-manifold': {
+    role: 'Splits coolant into 8 parallel loops, one per GPU.',
+    links: [
+      { to: 'gpu-coldplate', scope: 'any', bus: 'cool', label: 'All 8 GPU cold plates', group: 'Cold plates' },
+      { to: 'uqd', scope: 'any', bus: 'cool', label: 'Rack supply / return', group: 'UQDs' },
+    ],
+  },
+  'qd-coupling': {
+    role: 'Drip-free couplings so a GPU can be swapped without draining.',
+    links: [
+      { to: 'gpu-manifold', scope: 'any', bus: 'cool', label: 'Manifold spine', group: 'Manifold' },
+      { to: 'gpu-coldplate', scope: 'any', bus: 'cool', label: 'Each cold plate', group: 'Cold plates' },
+    ],
   },
   'front-panel': {
     role: 'Management I/O, storage bays, handles and ejectors.',
