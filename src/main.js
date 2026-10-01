@@ -5,10 +5,25 @@ import { buildSuperchip, setLids } from './assemblies/superchip.js';
 import { buildComputeTray, setCooling, setColdPlateLift } from './assemblies/tray.js';
 import { veraDieMaterials } from './parts/chips.js';
 import { easeInOut } from './lib/util.js';
+import { createAnnotator, partOf, isShown } from './annotations/annotator.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 const container = document.getElementById('viewport');
 const studio = createStudio(container);
 const { renderer, scene, camera, composer } = studio;
+const annotator = createAnnotator({ renderer, camera });
+
+// The post-processed frame is kept in a render target so the animated connection overlay can be
+// redrawn every frame without re-rendering the (expensive) scene.
+composer.renderToScreen = false;
+const blit = new FullScreenQuad(new THREE.ShaderMaterial({
+  uniforms: { tDiffuse: { value: null }, dim: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float dim; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); gl_FragColor = vec4(c.rgb * (1.0 - dim), 1.0); }`,
+  depthTest: false, depthWrite: false,
+}));
+let dim = 0;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -97,6 +112,8 @@ function stepTween(now) {
 }
 
 function setView(name, { instant = false } = {}) {
+  annotator.unpin();
+  annotator.reindex();
   current = name;
   const v = views[name];
   for (const [k, r] of Object.entries(roots)) r.visible = k === name;
@@ -129,46 +146,51 @@ function applyToggles() {
   }
   const vm = veraDieMaterials();
   scene.traverse((o) => { if (o.name === 'vera-die') o.material = $('floorplan').checked ? vm.floorplan : vm.marked; });
+  annotator.refresh();
   invalidate({ shadows: true });
 }
 ['lids', 'cooling', 'floorplan'].forEach((id) => $(id).addEventListener('change', applyToggles));
-$('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); invalidate({ shadows: true }); });
+$('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); annotator.refresh(); invalidate({ shadows: true }); });
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.view !== current) setView(b.dataset.view);
 }));
 document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => flyTo(views[current].cams[b.dataset.cam])));
 
-// ---- hover identification (foundation for the annotation layer) ----
+// ---- hover / pin: connection pathways + callout (see src/annotations) ----
 const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let mouseDirty = false, mouseClient = [0, 0];
-renderer.domElement.addEventListener('pointermove', (e) => {
+let mouseDirty = false, buttons = 0, downAt = null;
+let overlayDirty = false;
+const el = renderer.domElement;
+el.addEventListener('pointermove', (e) => {
   mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  mouseClient = [e.clientX, e.clientY];
+  buttons = e.buttons;
   mouseDirty = true;
 });
-renderer.domElement.addEventListener('pointerleave', () => { $('tooltip').hidden = true; });
-function findPart(o) {
-  while (o) {
-    if (o.userData.part) return o.userData.part;
-    o = o.parent;
+el.addEventListener('pointerleave', () => { if (annotator.hover(null)) overlayDirty = true; });
+el.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+el.addEventListener('pointerup', (e) => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+  mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  annotator.pin(pick(), roots[current]);
+  overlayDirty = true;
+});
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && annotator.unpin()) overlayDirty = true; });
+
+function pick() {
+  ray.setFromCamera(mouse, camera);
+  for (const h of ray.intersectObject(roots[current], true)) {
+    if (!isShown(h.object)) continue;
+    const p = partOf(h.object);
+    if (!p) continue;
+    return p.isInstancedMesh && h.instanceId != null ? { obj: p, instanceId: h.instanceId } : { obj: p };
   }
   return null;
 }
 function updateHover() {
-  if (!mouseDirty || !current) return;
+  if (!mouseDirty || !current || buttons) return;
   mouseDirty = false;
-  ray.setFromCamera(mouse, camera);
-  const hits = ray.intersectObject(roots[current], true);
-  const hit = hits.find((h) => h.object.visible && findPart(h.object));
-  const tt = $('tooltip');
-  if (!hit) { tt.hidden = true; return; }
-  const p = findPart(hit.object);
-  tt.querySelector('.tt-label').textContent = p.label;
-  tt.querySelector('.tt-info').textContent = p.info || '';
-  tt.style.left = mouseClient[0] + 'px';
-  tt.style.top = mouseClient[1] + 'px';
-  tt.hidden = false;
+  if (annotator.hover(pick(), roots[current])) overlayDirty = true;
 }
 
 // ---- boot ----
@@ -195,7 +217,7 @@ function invalidate({ shadows = false } = {}) {
   if (shadows) renderer.shadowMap.needsUpdate = true;
 }
 controls.addEventListener('change', () => invalidate());
-window.addEventListener('resize', () => invalidate());
+window.addEventListener('resize', () => { annotator.resize(); invalidate(); });
 
 function loop(now) {
   const moving = !!tween;
@@ -204,12 +226,31 @@ function loop(now) {
   updateHover();
   if (moving) invalidate();
   const settled = now - lastMotion > 180;
+  let composed = false;
   if (needsRender || (settled && !settledFrameDone)) {
     studio.gtao.enabled = settled;
     composer.render();
     needsRender = false;
     if (settled) settledFrameDone = true;
+    composed = true;
+  }
+  // ease the background dim in/out while a component is highlighted
+  const targetDim = annotator.active ? 0.38 : 0;
+  const dimChanging = Math.abs(dim - targetDim) > 0.002;
+  if (dimChanging) dim += (targetDim - dim) * 0.18;
+  else dim = targetDim;
+  if (composed || annotator.active || overlayDirty || dimChanging) {
+    blit.material.uniforms.tDiffuse.value = composer.readBuffer.texture;
+    blit.material.uniforms.dim.value = dim;
+    renderer.setRenderTarget(null);
+    blit.render(renderer);
+    annotator.frame(now);
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(annotator.overlay, camera);
+    renderer.autoClear = true;
+    overlayDirty = false;
   }
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate };
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, roots: () => roots[current] };

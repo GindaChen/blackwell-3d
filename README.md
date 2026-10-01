@@ -1,9 +1,12 @@
 # Vera Rubin 3D
 
 An interactive, physically-based 3D model of NVIDIA's **Vera Rubin** hardware, built procedurally in
-three.js from public photographs and renders. It's meant to grow into a learning tool: every
-component is already tagged with a name and description (hover to see them), which is the
-foundation for a future annotation layer.
+three.js from public photographs and renders. It's meant to grow into a learning tool.
+
+**Hover any component to trace its connections.** Animated, colour-coded pathways arc to every part it
+talks to: NVLink, NVLink-C2C, HBM4, LPDDR5X, PCIe, network, power, coolant and management. Each
+connected part is bracketed and labelled. A callout card sits off to the side with a leader line, so it
+never covers the part. Click to pin a selection while you orbit or explode. Press Esc or click empty space to release it.
 
 ## Views
 
@@ -38,6 +41,8 @@ Everything is generated in code. There are no downloaded meshes and no image tex
 | Die floorplans, lid marking, substrates | `src/textures/silicon.js` |
 | Studio lighting, shadows, GTAO, tone mapping | `src/scene/studio.js` |
 | Draw-call optimizer (merges static meshes per part) | `src/lib/optimize.js` |
+| Connection graph (roles, links, buses, bandwidths) | `src/annotations/connections.js` |
+| Hover/pin pathways, brackets, callout placement | `src/annotations/annotator.js` |
 
 The PCB texture is built from the same placement list as the 3D parts. Every capacitor sits on its own
 pads and every package has its own silkscreen outline.

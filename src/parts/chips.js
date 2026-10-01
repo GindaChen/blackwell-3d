@@ -69,16 +69,15 @@ function rubinMats() {
 export function rubinGPU({ index = 0 } = {}) {
   const M = materials();
   const R = rubinMats();
+  // Substrate and stiffener are untagged on purpose: hovering them selects the whole GPU.
   const g = new THREE.Group();
   g.name = `rubin-gpu-${index}`;
   const SW = 92, SD = 106, ST = 1.8;
 
   const sub = topMesh(SW, ST, SD, R.sub, M.pcbEdge);
-  tagPart(sub, 'gpu-substrate', 'Rubin GPU package substrate', 'Organic build-up substrate that fans out ~10k+ bumps from the interposer to the board BGA.');
   g.add(sub);
 
   const stiff = frame(SW - 1, SD - 1, 6.5, 1.5, M.stiffenerGold, ST);
-  tagPart(stiff, 'gpu-stiffener', 'Package stiffener ring', 'Keeps the very large substrate flat during reflow and under cold-plate clamping force.');
   g.add(stiff);
 
   // Interposer (CoWoS-L) and underfill
@@ -150,11 +149,9 @@ export function veraCPU() {
     roughness: 0.35, metalness: 0.05, clearcoat: 0.5, clearcoatRoughness: 0.2,
   });
   const sub = topMesh(70, 1.4, 72, subMat, M.pcbEdge);
-  tagPart(sub, 'cpu-substrate', 'Vera CPU package substrate', 'Organic substrate carrying the Vera die plus LPDDR5X and NVLink-C2C I/O.');
   g.add(sub);
 
   const stiff = frame(80, 82, 7.5, 2.4, M.nickel, 0);
-  tagPart(stiff, 'cpu-frame', 'CPU stiffener / loading frame', 'Distributes cold-plate mounting load around the bare die.');
   g.add(stiff);
 
   const uf = new THREE.Mesh(box(48, 0.5, 58), M.moldBlack);
