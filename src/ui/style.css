@@ -6,6 +6,9 @@
   --text: #e9ebe6;
   --muted: #9aa09a;
   --accent: #76b900;
+  --tap: 40px;          /* minimum height of anything you can press */
+  --check: 18px;
+  --thumb: 18px;
   color-scheme: dark;
 }
 
@@ -27,20 +30,24 @@ html, body {
 .hud-title { top: 22px; left: 26px; pointer-events: none; display: grid; justify-items: start; gap: 10px; max-width: min(520px, calc(100vw - 32px)); }
 .hud-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 
-.hud-views { top: 22px; right: 22px; display: flex; gap: 6px; background: var(--panel); border-radius: 10px; padding: 4px; backdrop-filter: blur(10px); box-shadow: var(--shadow); }
-button { touch-action: manipulation; font: inherit; color: var(--text); background: transparent; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.hud-views { top: 22px; right: 22px; display: flex; gap: 4px; background: var(--panel); border-radius: 12px; padding: 4px; backdrop-filter: blur(10px); box-shadow: var(--shadow); }
+button { touch-action: manipulation; font: inherit; color: var(--text); background: transparent; border: 0; min-height: var(--tap); padding: 0 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
 button:hover { background: rgba(255, 255, 255, 0.06); }
 button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 
-.hud-controls { right: 22px; bottom: 22px; width: 260px; background: var(--panel); border-radius: 12px; padding: 12px 14px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
-.hud-controls summary { display: none; list-style: none; cursor: pointer; font-weight: 600; font-size: 13px; padding: 2px 0; }
+.hud-controls { right: 22px; bottom: 22px; width: 290px; background: var(--panel); border-radius: 14px; padding: 10px 16px 14px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
+.hud-controls summary { display: none; list-style: none; cursor: pointer; font-weight: 600; font-size: 14px; min-height: var(--tap); align-items: center; touch-action: manipulation; }
 .hud-controls summary::-webkit-details-marker { display: none; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; }
-.row.toggle { justify-content: flex-start; cursor: pointer; }
-.row input[type='range'] { width: 110px; accent-color: var(--accent); }
-.row input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
-.presets { justify-content: flex-start; flex-wrap: wrap; gap: 4px; padding-top: 8px; margin-top: 4px; }
-.presets button { padding: 5px 9px; font-size: 12px; background: rgba(255, 255, 255, 0.04); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--tap); font-size: 14px; }
+.row.toggle { justify-content: flex-start; cursor: pointer; touch-action: manipulation; }
+.row input[type='range'] { width: 130px; height: var(--tap); margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; touch-action: none; }
+.row input[type='range']::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); }
+.row input[type='range']::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); }
+.row input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc(2px - var(--thumb) / 2); border-radius: 50%; background: var(--accent); border: 0; }
+.row input[type='range']::-moz-range-thumb { width: var(--thumb); height: var(--thumb); border-radius: 50%; background: var(--accent); border: 0; }
+.row input[type='checkbox'] { accent-color: var(--accent); width: var(--check); height: var(--check); margin: 0; flex: none; }
+.presets { justify-content: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.presets button { padding: 0 12px; font-size: 13px; background: rgba(255, 255, 255, 0.05); flex: 1; }
 
 body:not(.view-tray) .tray-only { display: none; }
 
@@ -59,8 +66,8 @@ body:not(.view-tray) .tray-only { display: none; }
 .c-links .bus { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
 .c-hint { margin-top: 9px; font-size: 10.5px; color: #7d837c; }
 
-.mode-toggle { pointer-events: auto; display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel); backdrop-filter: blur(10px); box-shadow: var(--shadow); }
-.mode-toggle button { padding: 6px 12px; font-size: 12.5px; color: var(--muted); }
+.mode-toggle { pointer-events: auto; display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(10px); box-shadow: var(--shadow); }
+.mode-toggle button { padding: 0 16px; font-size: 14px; color: var(--muted); }
 .mode-toggle button.active { background: rgba(118, 185, 0, 0.2); color: #d8f5a2; }
 body.touring .hud-views, body.touring .hud-controls { display: none; }
 
@@ -76,12 +83,15 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 .tp-legend:empty { display: none; }
 .tp-legend i { display: inline-block; width: 14px; height: 2px; margin-right: 6px; vertical-align: middle; border-radius: 1px; }
 .tp-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
-.tp-nav .tp-prev, .tp-nav .tp-next { background: rgba(255, 255, 255, 0.06); min-width: 84px; }
+.tp-nav .tp-prev, .tp-nav .tp-next { background: rgba(255, 255, 255, 0.06); min-width: 104px; }
 .tp-nav .tp-next { background: rgba(118, 185, 0, 0.2); color: #d8f5a2; }
 .tp-nav button:disabled { opacity: 0.35; cursor: default; }
-.tp-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.tp-dot { width: 8px; height: 8px; padding: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.2); }
-.tp-dot.on { background: var(--accent); }
+.tp-dots { display: flex; gap: 0; flex-wrap: wrap; justify-content: center; }
+.tp-dot { width: 20px; min-height: 28px; padding: 0; background: transparent; }
+.tp-dot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
+.tp-dot:hover { background: transparent; }
+.tp-dot:hover::before { background: rgba(255, 255, 255, 0.45); }
+.tp-dot.on::before { background: var(--accent); }
 .tour-svg .tag text { font: 600 11px Inter, system-ui, sans-serif; }
 
 .loading { position: fixed; inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--bg); color: var(--muted); font-size: 13px; transition: opacity 0.6s; }
@@ -92,25 +102,21 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 @media (max-width: 720px) {
   .hud-title { left: 16px; top: calc(14px + env(safe-area-inset-top)); gap: 8px; }
   .hud-title h1 { font-size: 20px; }
-  .mode-toggle button { padding: 8px 12px; font-size: 13px; }
   .hud-views { top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: space-between; }
-  .hud-views button { flex: 1; padding: 10px 6px; }
-  .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 14px; }
-  .hud-controls summary { display: block; }
-  .hud-controls summary::after { content: ' ▾'; color: var(--muted); }
-  .hud-controls[open] summary { margin-bottom: 6px; }
-  .hud-controls[open] summary::after { content: ' ▴'; }
+  .hud-views button { flex: 1; padding: 0 6px; }
+  .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(12px + var(--tap) + 8px + 10px + env(safe-area-inset-bottom)); padding: 4px 16px; }
+  .hud-controls summary { display: flex; }
+  .hud-controls summary::after { content: '▾'; margin-left: 6px; color: var(--muted); }
+  .hud-controls[open] { padding-bottom: 14px; }
+  .hud-controls[open] summary::after { content: '▴'; }
   .hud-controls[open] { left: 12px; }
-  .row { padding: 7px 0; }
-  .row input[type='checkbox'] { width: 18px; height: 18px; }
-  .presets button { padding: 8px 12px; font-size: 13px; }
   .callout { width: min(300px, calc(100vw - 24px)); }
   .tour-panel { bottom: calc(12px + env(safe-area-inset-bottom)); width: calc(100vw - 24px); padding: 12px 14px 10px; }
   .tp-title { font-size: 16px; }
   .tp-text { font-size: 13px; }
-  .tp-nav .tp-prev, .tp-nav .tp-next { min-width: 92px; padding: 10px 12px; }
   .tp-dots { display: none; }
   .row input[type='range'] { width: 55%; }
+  .tp-nav .tp-prev, .tp-nav .tp-next { flex: 1; }
 }
 
 /* Short landscape screens (phones on their side): step panel docks to the right, options collapse. */
@@ -118,16 +124,23 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-title { top: calc(10px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); gap: 6px; }
   .hud-title h1 { font-size: 18px; }
   .hud-views { top: 10px; right: calc(10px + env(safe-area-inset-right)); }
-  .hud-views button { padding: 6px 10px; }
-  .hud-controls { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 70px); overflow: auto; }
-  .hud-controls summary { display: block; }
-  .hud-controls summary::after { content: ' ▾'; color: var(--muted); }
-  .hud-controls[open] summary::after { content: ' ▴'; }
-  .row { padding: 4px 0; }
+  .hud-views button { padding: 0 12px; }
+  .hud-controls { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 80px); overflow: auto; }
+  .hud-controls summary { display: flex; }
+  .hud-controls summary::after { content: '▾'; margin-left: 6px; color: var(--muted); }
+  .hud-controls[open] summary::after { content: '▴'; }
   .tour-panel { left: auto; right: calc(10px + env(safe-area-inset-right)); top: 10px; bottom: 10px; transform: none;
     width: min(330px, 45vw); display: flex; flex-direction: column; overflow: auto; padding: 12px 14px; }
   .tp-title { font-size: 15px; }
   .tp-text { font-size: 12.5px; }
   .tp-nav { margin-top: auto; padding-top: 8px; }
   .tp-dots { display: none; }
+}
+
+/* Touch screens (any size): finger-sized targets. */
+@media (pointer: coarse) {
+  :root { --tap: 48px; --check: 22px; --thumb: 26px; }
+  button, .row { font-size: 15px; }
+  .presets button { font-size: 14px; }
+  .tp-dot { width: 24px; min-height: 40px; }
 }
