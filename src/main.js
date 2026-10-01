@@ -107,6 +107,15 @@ function build(name) {
   return g;
 }
 
+// Presets are authored for a ~4:3 landscape screen. On narrower (portrait) screens, pull the camera
+// back along the same direction so the model still fits horizontally.
+function preset(p) {
+  const k = Math.max(1, (1.33 / camera.aspect) * 0.8);
+  const target = new THREE.Vector3(...p.target);
+  const pos = new THREE.Vector3(...p.pos).sub(target).multiplyScalar(k).add(target);
+  return { pos: pos.toArray(), target: p.target };
+}
+
 // ---- camera tweening ----
 let tween = null;
 function flyTo(preset, dur = 1.2) {
@@ -142,13 +151,16 @@ function setView(name, { instant = false } = {}) {
   sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s;
   sc.updateProjectionMatrix();
   if (instant) {
-    camera.position.set(...v.cams.hero.pos);
-    controls.target.set(...v.cams.hero.target);
-  } else flyTo(v.cams.hero);
+    const h = preset(v.cams.hero);
+    camera.position.set(...h.pos);
+    controls.target.set(...h.target);
+  } else flyTo(preset(v.cams.hero));
 }
 
 // ---- UI wiring ----
 const $ = (id) => document.getElementById(id);
+const smallScreen = matchMedia('(max-width: 720px), (max-height: 500px)');
+$('controls').open = !smallScreen.matches;
 // Display toggles (checkboxes in the controls panel; URL params like ?lids=1 can preset them).
 const display = { lids: false, cooling: true, floorplan: false };
 for (const k of Object.keys(display)) $(k).addEventListener('change', (e) => { display[k] = e.target.checked; applyToggles(); });
@@ -167,7 +179,7 @@ $('explode').addEventListener('input', (e) => { explodeT = +e.target.value; appl
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.view !== current) setView(b.dataset.view);
 }));
-document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => flyTo(views[current].cams[b.dataset.cam])));
+document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => flyTo(preset(views[current].cams[b.dataset.cam]))));
 
 // ---- guided tour (see src/tour) ----
 const tour = createTour({
@@ -242,7 +254,7 @@ setTimeout(() => {
   for (const k of Object.keys(display)) if (params.has(k)) display[k] = params.get(k) !== '0';
   for (const k of Object.keys(display)) $(k).checked = display[k];
   applyToggles();
-  if (params.get('cam')) { const c = views[current].cams[params.get('cam')]; camera.position.set(...c.pos); controls.target.set(...c.target); }
+  if (params.get('cam')) { const c = preset(views[current].cams[params.get('cam')]); camera.position.set(...c.pos); controls.target.set(...c.target); }
   if (params.has('tour')) tour.start(Math.max(0, (+params.get('tour') || 1) - 1));
   invalidate({ shadows: true });
   $('loading').classList.add('done');

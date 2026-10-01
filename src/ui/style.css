@@ -11,6 +11,8 @@
 
 * { box-sizing: border-box; }
 html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
   margin: 0;
   height: 100%;
   background: var(--bg);
@@ -26,11 +28,13 @@ html, body {
 .hud-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 
 .hud-views { top: 22px; right: 22px; display: flex; gap: 6px; background: var(--panel); border-radius: 10px; padding: 4px; backdrop-filter: blur(10px); box-shadow: var(--shadow); }
-button { font: inherit; color: var(--text); background: transparent; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; }
+button { touch-action: manipulation; font: inherit; color: var(--text); background: transparent; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; }
 button:hover { background: rgba(255, 255, 255, 0.06); }
 button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 
 .hud-controls { right: 22px; bottom: 22px; width: 260px; background: var(--panel); border-radius: 12px; padding: 12px 14px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
+.hud-controls summary { display: none; list-style: none; cursor: pointer; font-weight: 600; font-size: 13px; padding: 2px 0; }
+.hud-controls summary::-webkit-details-marker { display: none; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; }
 .row.toggle { justify-content: flex-start; cursor: pointer; }
 .row input[type='range'] { width: 110px; accent-color: var(--accent); }
@@ -63,6 +67,7 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 .tour-panel { position: fixed; z-index: 4; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(560px, calc(100vw - 32px));
   background: rgba(14, 16, 16, 0.92); border-radius: 12px; padding: 14px 18px 12px;
   backdrop-filter: blur(10px); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55); }
+.tour-panel[hidden], .callout[hidden] { display: none !important; }
 .tp-head { display: flex; justify-content: space-between; align-items: center; }
 .tp-step { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 .tp-title { margin: 4px 0 3px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
@@ -85,8 +90,44 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 720px) {
-  .hud-title { left: 16px; top: 14px; }
+  .hud-title { left: 16px; top: calc(14px + env(safe-area-inset-top)); gap: 8px; }
   .hud-title h1 { font-size: 20px; }
-  .hud-views { top: auto; bottom: 16px; left: 16px; right: auto; }
-  .hud-controls { right: 16px; left: 16px; width: auto; bottom: 64px; }
+  .mode-toggle button { padding: 8px 12px; font-size: 13px; }
+  .hud-views { top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: space-between; }
+  .hud-views button { flex: 1; padding: 10px 6px; }
+  .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 14px; }
+  .hud-controls summary { display: block; }
+  .hud-controls summary::after { content: ' ▾'; color: var(--muted); }
+  .hud-controls[open] summary { margin-bottom: 6px; }
+  .hud-controls[open] summary::after { content: ' ▴'; }
+  .hud-controls[open] { left: 12px; }
+  .row { padding: 7px 0; }
+  .row input[type='checkbox'] { width: 18px; height: 18px; }
+  .presets button { padding: 8px 12px; font-size: 13px; }
+  .callout { width: min(300px, calc(100vw - 24px)); }
+  .tour-panel { bottom: calc(12px + env(safe-area-inset-bottom)); width: calc(100vw - 24px); padding: 12px 14px 10px; }
+  .tp-title { font-size: 16px; }
+  .tp-text { font-size: 13px; }
+  .tp-nav .tp-prev, .tp-nav .tp-next { min-width: 92px; padding: 10px 12px; }
+  .tp-dots { display: none; }
+  .row input[type='range'] { width: 55%; }
+}
+
+/* Short landscape screens (phones on their side): step panel docks to the right, options collapse. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hud-title { top: calc(10px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); gap: 6px; }
+  .hud-title h1 { font-size: 18px; }
+  .hud-views { top: 10px; right: calc(10px + env(safe-area-inset-right)); }
+  .hud-views button { padding: 6px 10px; }
+  .hud-controls { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 70px); overflow: auto; }
+  .hud-controls summary { display: block; }
+  .hud-controls summary::after { content: ' ▾'; color: var(--muted); }
+  .hud-controls[open] summary::after { content: ' ▴'; }
+  .row { padding: 4px 0; }
+  .tour-panel { left: auto; right: calc(10px + env(safe-area-inset-right)); top: 10px; bottom: 10px; transform: none;
+    width: min(330px, 45vw); display: flex; flex-direction: column; overflow: auto; padding: 12px 14px; }
+  .tp-title { font-size: 15px; }
+  .tp-text { font-size: 12.5px; }
+  .tp-nav { margin-top: auto; padding-top: 8px; }
+  .tp-dots { display: none; }
 }

@@ -171,14 +171,22 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
     if (reframe) frameCamera(framePts, step);
   }
 
-  /** Height (px) of the screen strip hidden behind the step panel. */
-  function panelReserve() {
-    return panel.hidden ? 0 : innerHeight - panel.getBoundingClientRect().top + 12;
+  /**
+   * Screen strips (px) covered by UI: the step panel (bottom, or right side on short landscape
+   * screens) and the title header (top).
+   */
+  function reserves() {
+    const none = { top: 0, bottom: 0, right: 0 };
+    if (panel.hidden) return none;
+    const pr = panel.getBoundingClientRect();
+    if (pr.height > innerHeight * 0.6 && pr.width < innerWidth * 0.6) return { ...none, right: innerWidth - pr.left + 12 };
+    const header = document.querySelector('.hud-title');
+    return { top: header ? header.getBoundingClientRect().bottom + 8 : 0, bottom: innerHeight - pr.top + 12, right: 0 };
   }
-  /** Shift the projection so the visual centre sits in the free area above the panel. */
+  /** Shift the projection so the visual centre sits in the free area left by the UI. */
   function applyViewOffset() {
-    const r = active ? panelReserve() : 0;
-    if (r > 0) camera.setViewOffset(innerWidth, innerHeight, 0, r / 2, innerWidth, innerHeight);
+    const r = active ? reserves() : { top: 0, bottom: 0, right: 0 };
+    if (r.top || r.bottom || r.right) camera.setViewOffset(innerWidth, innerHeight, r.right / 2, (r.bottom - r.top) / 2, innerWidth, innerHeight);
     else camera.clearViewOffset();
   }
 
@@ -186,9 +194,11 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
     const box = new THREE.Box3().setFromPoints(points);
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 2.5);
-    const usable = (innerHeight - panelReserve()) / innerHeight; // fraction of the screen left for the model
-    const vfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * usable);
-    const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect);
+    const r = reserves();
+    const usableH = Math.max(0.3, (innerHeight - r.top - r.bottom) / innerHeight); // fractions left for the model
+    const usableW = Math.max(0.3, (innerWidth - r.right) / innerWidth);
+    const vfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * usableH);
+    const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect * usableW);
     const fov = Math.min(vfov, hfov);
     const dist = (radius / Math.sin(fov / 2)) * (step.zoom ?? 1) * 0.92;
     const dir = new THREE.Vector3(...(step.dir || [0.5, 0.8, 0.8])).normalize();

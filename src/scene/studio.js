@@ -55,7 +55,9 @@ function studioEnvironment(renderer) {
 
 export function createStudio(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Phones/tablets: cap resolution and shadow size to keep frame times and memory reasonable.
+  const touch = matchMedia('(pointer: coarse)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, touch ? 1.5 : 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -78,7 +80,7 @@ export function createStudio(container) {
   const key = new THREE.DirectionalLight(0xfff6ea, 2.2);
   key.position.set(-30, 70, 35);
   key.castShadow = true;
-  key.shadow.mapSize.set(4096, 4096);
+  key.shadow.mapSize.setScalar(touch ? 2048 : 4096);
   const sc = key.shadow.camera;
   sc.left = -60; sc.right = 60; sc.top = 60; sc.bottom = -60; sc.near = 10; sc.far = 220;
   key.shadow.bias = -0.0002;
