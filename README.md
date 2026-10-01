@@ -47,6 +47,31 @@ npm install
 npm run dev
 ```
 
+## Deploying to Cloudflare
+
+The site is a static Vite build served by a Cloudflare Worker with static assets (`wrangler.jsonc`).
+
+One-time setup:
+
+```bash
+npx wrangler login
+```
+
+Deploy from your machine:
+
+```bash
+npm run deploy
+```
+
+To test locally in Cloudflare's runtime first, run `npm run cf:dev`.
+
+**Auto-deploy on push.** `.github/workflows/deploy.yml` deploys every push to `main` once you add two repository
+secrets:
+- `CLOUDFLARE_API_TOKEN`: create it from the "Edit Cloudflare Workers" template.
+- `CLOUDFLARE_ACCOUNT_ID`
+
+Until both are set, the workflow builds and skips the deploy step.
+
 ## How it's built
 
 Everything is generated in code. There are no downloaded meshes and no image textures:

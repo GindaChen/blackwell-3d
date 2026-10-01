@@ -4,3 +4,6 @@ dist/
 # Third-party reference photos are copyrighted; keep them local only.
 # Run `npm run fetch-refs` to re-download them (see reference/SOURCES.md).
 reference/images/
+
+# Cloudflare Wrangler local state
+.wrangler/
