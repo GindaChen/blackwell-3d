@@ -13,7 +13,10 @@
 
     <header class="hud hud-title">
       <h1 id="view-title">Vera Rubin Superchip</h1>
-      <button id="tour-start" class="tour-start" type="button">Take the guided tour →</button>
+      <div class="mode-toggle" role="group" aria-label="Mode">
+        <button type="button" data-mode="free" class="active" aria-pressed="true">Free mode</button>
+        <button type="button" data-mode="guided" aria-pressed="false">Guided mode</button>
+      </div>
     </header>
 
     <nav class="hud hud-views" aria-label="Views">
@@ -40,7 +43,6 @@
       <div>Fabricating silicon…</div>
     </div>
 
-    <footer class="hud hud-foot">Drag to orbit · scroll to zoom · right-drag to pan · hover a component to trace its connections · click to pin · ← → in the tour</footer>
 
     <script type="module" src="/src/main.js"></script>
   </body>

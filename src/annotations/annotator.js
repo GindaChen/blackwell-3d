@@ -356,7 +356,7 @@ export function createAnnotator({ renderer, camera }) {
         const tw = label.length * 6.4 + 14;
         const tx = Math.min(Math.max(u.x0 - 4, 6), innerWidth - tw - 6);
         const ty = Math.min(Math.max(u.y0 - 22, 6), innerHeight - 22);
-        out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="16" fill="rgba(8,10,10,0.82)" stroke="${color}" stroke-opacity="0.45"/><text x="${tx + 7}" y="${ty + 11.5}" fill="${color}">${esc(label)}</text></g>`;
+        out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="16" fill="rgba(14,16,16,0.9)"/><text x="${tx + 7}" y="${ty + 11.5}" fill="${color}">${esc(label)}</text></g>`;
       });
     }
     // source bracket
@@ -374,7 +374,7 @@ export function createAnnotator({ renderer, camera }) {
     const horizontal = ex === C.x0 || ex === C.x1;
     const elbow = horizontal ? [ex + (ex === C.x0 ? -22 : 22), ey] : [ex, ey + (ey === C.y0 ? -22 : 22)];
     out += `<polyline points="${anchor[0]},${anchor[1]} ${elbow[0]},${elbow[1]} ${ex},${ey}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.3"/>`;
-    out += `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="4.5" fill="#76b900" stroke="#fff" stroke-width="1.5"/>`;
+    out += `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="4" fill="#76b900"/>`;
     out += `<circle cx="${ex}" cy="${ey}" r="2.5" fill="#fff"/>`;
     svg.innerHTML = out;
   }

@@ -183,8 +183,18 @@ const tour = createTour({
   },
   flyTo,
   invalidate: () => { overlayDirty = true; invalidate({ shadows: true }); },
+  onModeChange: (guided) => {
+    document.querySelectorAll('[data-mode]').forEach((b) => {
+      const on = (b.dataset.mode === 'guided') === guided;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  },
 });
-$('tour-start').addEventListener('click', () => { annotator.unpin(); tour.start(); });
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+  if (b.dataset.mode === 'guided') { annotator.unpin(); tour.start(); }
+  else tour.stop();
+}));
 
 // ---- hover / pin: connection pathways + callout (see src/annotations) ----
 const ray = new THREE.Raycaster();

@@ -9,7 +9,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const _v = new THREE.Vector3();
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createTour({ camera, overlay, getRoot, setView, getDisplay, setDisplay, flyTo, invalidate }) {
+export function createTour({ camera, overlay, getRoot, setView, getDisplay, setDisplay, flyTo, invalidate, onModeChange = () => {} }) {
   const group = new THREE.Group();
   overlay.add(group);
 
@@ -22,7 +22,7 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
   panel.hidden = true;
   panel.setAttribute('aria-live', 'polite');
   panel.innerHTML = `
-    <div class="tp-head"><span class="tp-step"></span><button class="tp-exit" type="button">Exit tour</button></div>
+    <div class="tp-head"><span class="tp-step"></span></div>
     <h2 class="tp-title"></h2>
     <p class="tp-text"></p>
     <div class="tp-legend"></div>
@@ -236,11 +236,10 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
       // nudge labels apart so they never stack on top of each other
       for (let tries = 0; tries < 8 && hits({ x0: tx, y0: ty, x1: tx + tw, y1: ty + 18 }); tries++) ty -= 22;
       placed.push({ x0: tx, y0: ty, x1: tx + tw, y1: ty + 18 });
-      const stroke = L.virtual ? 'rgba(255,255,255,0.5)' : L.color;
-      out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="18" fill="rgba(8,10,10,0.85)" stroke="${stroke}" stroke-opacity="0.55"/><text x="${tx + 8}" y="${ty + 12.5}" fill="${L.color}">${esc(L.text)}</text></g>`;
+      out += `<g class="tag"><rect x="${tx}" y="${ty}" rx="4" width="${tw}" height="18" fill="rgba(14,16,16,0.9)"/><text x="${tx + 8}" y="${ty + 12.5}" fill="${L.color}">${esc(L.text)}</text></g>`;
       if (L.virtual) {
         const [vx, vy] = project(L.points[0]);
-        out += `<circle cx="${vx}" cy="${vy}" r="3.5" fill="none" stroke="#fff" stroke-width="1.4"/>`;
+        out += `<circle cx="${vx}" cy="${vy}" r="3.5" fill="#fff"/>`;
       }
     }
     svg.innerHTML = out;
@@ -281,6 +280,7 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
     document.body.classList.add('touring');
     panel.hidden = false;
     go(at);
+    onModeChange(true);
   }
   function stop() {
     if (!active) return;
@@ -291,11 +291,11 @@ export function createTour({ camera, overlay, getRoot, setView, getDisplay, setD
     document.body.classList.remove('touring');
     if (saved) setDisplay(saved);
     invalidate();
+    onModeChange(false);
   }
 
   $('.tp-prev').addEventListener('click', () => go(index - 1));
   $('.tp-next').addEventListener('click', () => (index === STEPS.length - 1 ? stop() : go(index + 1)));
-  $('.tp-exit').addEventListener('click', stop);
   window.addEventListener('keydown', (e) => {
     if (!active) return;
     if (e.key === 'ArrowRight') go(index + 1);

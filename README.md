@@ -8,7 +8,7 @@ talks to: NVLink, NVLink-C2C, HBM4, LPDDR5X, PCIe, network, power, coolant and m
 connected part is bracketed and labelled. A callout card sits off to the side with a leader line, so it
 never covers the part. Click to pin a selection while you orbit or explode. Press Esc or click empty space to release it.
 
-**Take the guided tour.** Twelve short steps follow an AI model through the NVL72 compute tray:
+**Guided mode.** Switch the Free / Guided toggle (top-left) to Guided to walk through twelve short steps that follow an AI model through the NVL72 compute tray:
 1. Plugging into the rack.
 2. Power-on and boot.
 3. External networking.
@@ -22,7 +22,7 @@ never covers the part. Click to pin a selection while you orbit or explode. Pres
 11. Results going back out.
 
 Each step frames the camera on the parts involved and draws directional, colour-coded flows. You can still
-orbit, and ← / → or the arrows step through the tour. Esc or "Exit tour" returns to free exploration, and
+orbit, and ← / → or the arrows step through the tour. Esc or the Free mode toggle returns to free exploration, and
 `?tour=5` opens the tour at a given step.
 
 ## Views
