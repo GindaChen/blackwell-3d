@@ -42,10 +42,12 @@ button { touch-action: manipulation; font: inherit; color: var(--text); backgrou
 button:hover { background: rgba(255, 255, 255, 0.06); }
 button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 
-.hud-controls { right: 22px; bottom: 22px; width: 290px; background: var(--panel); border-radius: 14px; padding: 10px 16px 14px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
+/* Desktop: a full-width bar along the bottom edge. */
+.hud-controls { left: 22px; right: 22px; bottom: 22px; background: var(--panel); border-radius: 14px; padding: 6px 8px 6px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
 .hud-controls summary { display: none; list-style: none; cursor: pointer; font-weight: 700; font-stretch: var(--semi-wide); font-size: 14px; min-height: var(--tap); align-items: center; touch-action: manipulation; }
 .hud-controls summary::-webkit-details-marker { display: none; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--tap); font-size: 14px; }
+.controls-body { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 26px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--tap); font-size: 14px; white-space: nowrap; }
 .row.toggle { justify-content: flex-start; cursor: pointer; touch-action: manipulation; }
 .row input[type='range'] { width: 130px; height: var(--tap); margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; touch-action: none; }
 .row input[type='range']::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); }
@@ -53,8 +55,8 @@ button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 .row input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc(2px - var(--thumb) / 2); border-radius: 50%; background: var(--accent); border: 0; }
 .row input[type='range']::-moz-range-thumb { width: var(--thumb); height: var(--thumb); border-radius: 50%; background: var(--accent); border: 0; }
 .row input[type='checkbox'] { accent-color: var(--accent); width: var(--check); height: var(--check); margin: 0; flex: none; }
-.presets { justify-content: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.presets button { padding: 0 12px; font-size: 13px; background: rgba(255, 255, 255, 0.05); flex: 1; }
+.presets { justify-content: flex-end; gap: 4px; margin-left: auto; }
+.presets button { padding: 0 16px; font-size: 13px; background: rgba(255, 255, 255, 0.05); }
 
 body:not(.view-tray) .tray-only { display: none; }
 
@@ -111,6 +113,10 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-title h1 { font-size: 19px; font-stretch: var(--semi-wide); }
   .hud-views { top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: space-between; }
   .hud-views button { flex: 1; padding: 0 6px; font-stretch: 100%; }
+  .controls-body { display: block; }
+  .presets { margin: 6px 0 0; }
+  .presets button { flex: 1; }
+  .row { white-space: normal; }
   .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(12px + var(--tap) + 8px + 10px + env(safe-area-inset-bottom)); padding: 4px 16px; }
   .hud-controls summary { display: flex; }
   .hud-controls summary::after { content: '▾'; margin-left: 6px; color: var(--muted); }
@@ -132,7 +138,9 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-title h1 { font-size: 18px; }
   .hud-views { top: 10px; right: calc(10px + env(safe-area-inset-right)); }
   .hud-views button { padding: 0 12px; }
-  .hud-controls { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 80px); overflow: auto; }
+  .controls-body { display: block; }
+  .presets { margin: 6px 0 0; }
+  .hud-controls { left: auto; right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 80px); overflow: auto; }
   .hud-controls summary { display: flex; }
   .hud-controls summary::after { content: '▾'; margin-left: 6px; color: var(--muted); }
   .hud-controls[open] summary::after { content: '▴'; }
