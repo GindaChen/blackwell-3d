@@ -49,28 +49,12 @@ npm run dev
 
 ## Deploying to Cloudflare
 
-The site is a static Vite build served by a Cloudflare Worker with static assets (`wrangler.jsonc`).
+The site is a static Vite build hosted on **Cloudflare Pages** at https://verarubin.pages.dev (`wrangler.jsonc`).
 
-One-time setup:
+Deploys are automatic. Cloudflare's Git integration builds every push to `main` with `npm run build` and publishes
+`dist`. Every other branch and pull request gets its own preview URL. Node 22 is pinned in `.node-version`.
 
-```bash
-npx wrangler login
-```
-
-Deploy from your machine:
-
-```bash
-npm run deploy
-```
-
-To test locally in Cloudflare's runtime first, run `npm run cf:dev`.
-
-**Auto-deploy on push.** `.github/workflows/deploy.yml` deploys every push to `main` once you add two repository
-secrets:
-- `CLOUDFLARE_API_TOKEN`: create it from the "Edit Cloudflare Workers" template.
-- `CLOUDFLARE_ACCOUNT_ID`
-
-Until both are set, the workflow builds and skips the deploy step.
+To test locally in Cloudflare's runtime, run `npm run cf:dev`. This requires a one-time `npx wrangler login`.
 
 ## How it's built
 

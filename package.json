@@ -8,8 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "fetch-refs": "node scripts/fetch-refs.mjs",
-    "deploy": "vite build && wrangler deploy",
-    "cf:dev": "vite build && wrangler dev"
+    "cf:dev": "vite build && wrangler pages dev"
   },
   "dependencies": {
     "three": "^0.186.1"

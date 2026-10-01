@@ -1,11 +1,10 @@
-// Cloudflare Workers static-assets deployment for the Vite build in ./dist.
-// Deploy: `npm run deploy` (after a one-time `npx wrangler login`).
+// Cloudflare Pages project for the Vite build in ./dist.
+// Deploys happen automatically: Cloudflare's Git integration builds every push to main
+// (build command `npm run build`, output `dist`) and serves it at https://verarubin.pages.dev.
+// Branches and pull requests get their own preview URLs.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "vera-rubin-3d",
+  "name": "verarubin",
   "compatibility_date": "2026-10-01",
-  "assets": {
-    "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+  "pages_build_output_dir": "./dist"
 }
