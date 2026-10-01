@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vera Rubin 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="viewport"></div>
+
+    <header class="hud hud-title">
+      <div class="eyebrow">NVIDIA Vera Rubin · NVL72</div>
+      <h1 id="view-title">Vera Rubin Superchip</h1>
+      <p id="view-sub">1 Vera CPU · 2 Rubin GPUs · 16 HBM4 stacks · 8 SOCAMM modules</p>
+    </header>
+
+    <nav class="hud hud-views" aria-label="Views">
+      <button data-view="superchip" class="active">Superchip</button>
+      <button data-view="tray">Compute tray</button>
+    </nav>
+
+    <section class="hud hud-controls" aria-label="Display options">
+      <label class="row"><span>Exploded view</span><input id="explode" type="range" min="0" max="1" step="0.001" value="0" /></label>
+      <label class="row toggle"><input id="lids" type="checkbox" /><span>GPU heat-spreader lids</span></label>
+      <label class="row toggle"><input id="floorplan" type="checkbox" /><span>Show CPU die floorplan</span></label>
+      <label class="row toggle tray-only"><input id="cooling" type="checkbox" checked /><span>Liquid cold plates</span></label>
+      <div class="row presets">
+        <button data-cam="hero">Hero</button>
+        <button data-cam="top">Top</button>
+        <button data-cam="front">Front</button>
+        <button data-cam="close">Macro</button>
+      </div>
+    </section>
+
+    <div id="tooltip" class="tooltip" hidden>
+      <div class="tt-label"></div>
+      <div class="tt-info"></div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>Fabricating silicon…</div>
+    </div>
+
+    <footer class="hud hud-foot">Drag to orbit · scroll to zoom · right-drag to pan · hover a component to identify it</footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
