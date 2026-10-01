@@ -179,7 +179,6 @@ $('explode').addEventListener('input', (e) => { explodeT = +e.target.value; appl
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.view !== current) setView(b.dataset.view);
 }));
-document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => flyTo(preset(views[current].cams[b.dataset.cam]))));
 
 // ---- guided tour (see src/tour) ----
 const tour = createTour({

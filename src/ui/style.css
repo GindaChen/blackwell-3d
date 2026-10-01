@@ -55,8 +55,6 @@ button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 .row input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc(2px - var(--thumb) / 2); border-radius: 50%; background: var(--accent); border: 0; }
 .row input[type='range']::-moz-range-thumb { width: var(--thumb); height: var(--thumb); border-radius: 50%; background: var(--accent); border: 0; }
 .row input[type='checkbox'] { accent-color: var(--accent); width: var(--check); height: var(--check); margin: 0; flex: none; }
-.presets { justify-content: flex-end; gap: 4px; margin-left: auto; }
-.presets button { padding: 0 16px; font-size: 13px; background: rgba(255, 255, 255, 0.05); }
 
 body:not(.view-tray) .tray-only { display: none; }
 
@@ -114,8 +112,6 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-views { top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: space-between; }
   .hud-views button { flex: 1; padding: 0 6px; font-stretch: 100%; }
   .controls-body { display: block; }
-  .presets { margin: 6px 0 0; }
-  .presets button { flex: 1; }
   .row { white-space: normal; }
   .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(12px + var(--tap) + 8px + 10px + env(safe-area-inset-bottom)); padding: 4px 16px; }
   .hud-controls summary { display: flex; }
@@ -139,7 +135,6 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-views { top: 10px; right: calc(10px + env(safe-area-inset-right)); }
   .hud-views button { padding: 0 12px; }
   .controls-body { display: block; }
-  .presets { margin: 6px 0 0; }
   .hud-controls { left: auto; right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: auto; padding: 8px 12px; max-height: calc(100vh - 80px); overflow: auto; }
   .hud-controls summary { display: flex; }
   .hud-controls summary::after { content: '▾'; margin-left: 6px; color: var(--muted); }
@@ -156,6 +151,5 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 @media (pointer: coarse) {
   :root { --tap: 48px; --check: 22px; --thumb: 26px; }
   button, .row { font-size: 15px; }
-  .presets button { font-size: 14px; }
   .tp-dot { width: 24px; min-height: 40px; }
 }
