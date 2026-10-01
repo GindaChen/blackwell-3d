@@ -13,7 +13,7 @@ const { renderer, scene, camera, composer } = studio;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.maxPolarAngle = Math.PI * 0.495;
+controls.maxPolarAngle = Math.PI; // free orbit: the hardware floats, so viewing from below is allowed
 controls.minDistance = 4;
 controls.maxDistance = 400;
 
@@ -68,17 +68,8 @@ function build(name) {
   g.scale.setScalar(MM);
   if (name === 'superchip') {
     const sc = buildSuperchip();
-    sc.position.y = 4.0; // board underside rests on the plinth
+    sc.position.y = 4.0;
     g.add(sc);
-    // low display plinth
-    const plinth = new THREE.Mesh(
-      new THREE.BoxGeometry(250, 3, 420),
-      new THREE.MeshStandardMaterial({ color: '#0a0b0c', roughness: 0.4, metalness: 0.2, envMapIntensity: 0.5 }),
-    );
-    plinth.position.y = 0.5 - 1.5 + 0.5;
-    plinth.receiveShadow = true;
-    plinth.castShadow = true;
-    g.add(plinth);
     window.__superchip = sc;
   } else {
     g.add(buildComputeTray(buildSuperchip));

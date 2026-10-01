@@ -7,7 +7,6 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { backdropTexture } from '../textures/surfaces.js';
-import { makeCanvas, canvasTexture } from '../lib/util.js';
 
 /** Build an environment scene of emissive softboxes and prefilter it with PMREM. */
 function studioEnvironment(renderer) {
@@ -54,19 +53,6 @@ function studioEnvironment(renderer) {
   return rt.texture;
 }
 
-function floorTexture() {
-  const s = 1024;
-  const c = makeCanvas(s, s);
-  const x = c.getContext('2d');
-  const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-  g.addColorStop(0, '#0e0f10');
-  g.addColorStop(0.3, '#08090a');
-  g.addColorStop(1, '#020202');
-  x.fillStyle = g;
-  x.fillRect(0, 0, s, s);
-  return canvasTexture(c);
-}
-
 export function createStudio(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -105,9 +91,11 @@ export function createStudio(container) {
 
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(250, 64),
-    new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: 0.7, metalness: 0.0, envMapIntensity: 0.04 }),
+    // Invisible "void" floor: renders only a faint soft shadow so the hardware appears to hover.
+    new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.55 }),
   );
   floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -12; // 12 cm below the model
   floor.receiveShadow = true;
   floor.name = 'floor';
   scene.add(floor);
