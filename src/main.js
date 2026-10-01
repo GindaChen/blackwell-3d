@@ -310,4 +310,45 @@ function loop(now) {
   }
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, roots: () => roots[current] };
+/**
+ * Render one full-quality frame (AO on, no UI overlay) at an exact size and return it as a canvas.
+ * Used to produce share images, e.g. `__app.capture(1200, 630)` for the Open Graph card.
+ */
+function capture(width, height, supersample = 2) {
+  const prevSize = renderer.getSize(new THREE.Vector2());
+  const prevPR = renderer.getPixelRatio();
+  const prevAspect = camera.aspect;
+  const prevView = camera.view ? { ...camera.view } : null;
+  camera.clearViewOffset();
+  renderer.setPixelRatio(supersample);
+  renderer.setSize(width, height, false);
+  composer.setPixelRatio(supersample);
+  composer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.shadowMap.needsUpdate = true;
+  studio.gtao.enabled = true;
+  composer.render();
+  blit.material.uniforms.tDiffuse.value = composer.readBuffer.texture;
+  renderer.setRenderTarget(null);
+  blit.render(renderer);
+  // downsample the supersampled frame into the requested size
+  const out = document.createElement('canvas');
+  out.width = width;
+  out.height = height;
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(renderer.domElement, 0, 0, width, height);
+  // restore the live view
+  renderer.setPixelRatio(prevPR);
+  composer.setPixelRatio(prevPR);
+  renderer.setSize(prevSize.x, prevSize.y);
+  composer.setSize(prevSize.x, prevSize.y);
+  camera.aspect = prevAspect;
+  if (prevView?.enabled) camera.setViewOffset(prevView.fullWidth, prevView.fullHeight, prevView.offsetX, prevView.offsetY, prevView.width, prevView.height);
+  camera.updateProjectionMatrix();
+  invalidate({ shadows: true });
+  return out;
+}
+
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, roots: () => roots[current], capture };
