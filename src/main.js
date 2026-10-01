@@ -135,18 +135,20 @@ function setView(name, { instant = false } = {}) {
 
 // ---- UI wiring ----
 const $ = (id) => document.getElementById(id);
+// Every component is always shown (lids, cold plates, CPU floorplan); the exploded view reveals
+// what's underneath. URL params (?lids=0 etc.) can still override for debugging.
+const display = { lids: true, cooling: true, floorplan: true };
 function applyToggles() {
   for (const r of Object.values(roots)) {
-    setLids(r, $('lids').checked);
-    setCooling(r, $('cooling').checked);
-    setColdPlateLift(r, $('lids').checked);
+    setLids(r, display.lids);
+    setCooling(r, display.cooling);
+    setColdPlateLift(r, display.lids);
   }
   const vm = veraDieMaterials();
-  scene.traverse((o) => { if (o.name === 'vera-die') o.material = $('floorplan').checked ? vm.floorplan : vm.marked; });
+  scene.traverse((o) => { if (o.name === 'vera-die') o.material = display.floorplan ? vm.floorplan : vm.marked; });
   annotator.refresh();
   invalidate({ shadows: true });
 }
-['lids', 'cooling', 'floorplan'].forEach((id) => $(id).addEventListener('change', applyToggles));
 $('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); annotator.refresh(); invalidate({ shadows: true }); });
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.view !== current) setView(b.dataset.view);
@@ -195,8 +197,7 @@ setTimeout(() => {
   const params = new URLSearchParams(location.search);
   setView(params.get('view') === 'tray' ? 'tray' : 'superchip', { instant: true });
   if (params.get('explode')) { explodeT = +params.get('explode'); $('explode').value = explodeT; applyExplode(); }
-  if (params.has('lids')) $('lids').checked = params.get('lids') !== '0';
-  if (params.has('cooling')) $('cooling').checked = params.get('cooling') !== '0';
+  for (const k of Object.keys(display)) if (params.has(k)) display[k] = params.get(k) !== '0';
   applyToggles();
   if (params.get('cam')) { const c = views[current].cams[params.get('cam')]; camera.position.set(...c.pos); controls.target.set(...c.target); }
   invalidate({ shadows: true });
