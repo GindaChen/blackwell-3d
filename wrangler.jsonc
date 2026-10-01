@@ -1,7 +1,6 @@
-// Cloudflare Pages project for the Vite build in ./dist.
-// Deploys happen automatically: Cloudflare's Git integration builds every push to main
-// (build command `npm run build`, output `dist`) and serves it at https://verarubin.pages.dev.
-// Branches and pull requests get their own preview URLs.
+// Cloudflare Pages project for the Vite build in ./dist, served at https://verarubin.pages.dev.
+// Deploy from your machine with `npm run deploy` (after a one-time `npx wrangler login`); pushes to
+// main deploy automatically via .github/workflows/deploy.yml once the Cloudflare secrets are set.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "verarubin",

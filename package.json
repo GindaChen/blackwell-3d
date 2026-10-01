@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "fetch-refs": "node scripts/fetch-refs.mjs",
-    "cf:dev": "vite build && wrangler pages dev"
+    "cf:dev": "vite build && wrangler pages dev",
+    "deploy": "vite build && wrangler pages deploy dist --project-name verarubin --branch main"
   },
   "dependencies": {
     "three": "^0.186.1"

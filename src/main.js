@@ -276,6 +276,13 @@ controls.addEventListener('change', () => invalidate());
 window.addEventListener('resize', () => { annotator.resize(); tour.resize(); invalidate(); });
 
 function loop(now) {
+  if (!Number.isFinite(camera.position.x + camera.position.y + camera.position.z + controls.target.x + controls.target.y + controls.target.z)) {
+    tween = null;
+    const h = preset(views[current].cams.hero);
+    camera.position.set(...h.pos);
+    controls.target.set(...h.target);
+    invalidate();
+  }
   const moving = !!tween;
   stepTween(now);
   controls.update();

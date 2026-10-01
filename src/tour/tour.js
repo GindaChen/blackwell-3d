@@ -189,6 +189,7 @@ export function createTour({ camera, overlay, getRoot, getView, setView, getDisp
   }
   /** Shift the projection so the visual centre sits in the free area left by the UI. */
   function applyViewOffset() {
+    if (!(innerWidth > 0 && innerHeight > 0)) return; // zero-size viewport: offsets would divide by zero
     const r = active ? reserves() : { top: 0, bottom: 0, right: 0 };
     if (r.top || r.bottom || r.right) camera.setViewOffset(innerWidth, innerHeight, r.right / 2, (r.bottom - r.top) / 2, innerWidth, innerHeight);
     else camera.clearViewOffset();

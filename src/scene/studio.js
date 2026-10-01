@@ -73,7 +73,13 @@ export function createStudio(container) {
   scene.environmentIntensity = 1.0;
 
   // Scene units: 1 unit = 1 cm. Models are authored in mm and scaled by 0.1.
-  const camera = new THREE.PerspectiveCamera(32, container.clientWidth / container.clientHeight, 0.5, 2000);
+  // The container can be 0x0 at load (background tab, collapsed iframe); never let that produce a
+  // NaN aspect ratio, which would poison every camera computation downstream.
+  const aspectOf = () => {
+    const w = container.clientWidth, h = container.clientHeight;
+    return w > 0 && h > 0 ? w / h : 4 / 3;
+  };
+  const camera = new THREE.PerspectiveCamera(32, aspectOf(), 0.5, 2000);
   camera.position.set(32, 40, 52);
 
   // Key light (soft shadows) + cool rim
@@ -121,7 +127,8 @@ export function createStudio(container) {
 
   const resize = () => {
     const w = container.clientWidth, h = container.clientHeight;
-    camera.aspect = w / h;
+    if (!(w > 0 && h > 0)) return; // hidden / zero-size: keep the last valid projection
+    camera.aspect = aspectOf();
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
     composer.setSize(w, h);
