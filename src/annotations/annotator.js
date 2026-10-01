@@ -285,9 +285,8 @@ export function createAnnotator({ renderer, camera }) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
   const touch = matchMedia('(pointer: coarse)').matches;
-  const hint = () => (touch
-    ? (pinned ? 'Tap empty space to close' : 'Tap to pin')
-    : (pinned ? 'Pinned · click empty space or Esc to release' : 'Click to pin'));
+  // Only shown once a part is pinned, to explain how to release it.
+  const hint = () => (!pinned ? '' : touch ? 'Tap empty space to close' : 'Pinned · click empty space or Esc to release');
 
   function fillCard() {
     const p = current.source.obj.userData.part;
@@ -300,7 +299,7 @@ export function createAnnotator({ renderer, camera }) {
       <div class="c-title">${esc(p.label)}</div>
       <div class="c-role">${esc(role)}</div>
       ${rows ? `<div class="c-sub">Connects to</div><ul class="c-links">${rows}</ul>` : ''}
-      <div class="c-hint">${hint()}</div>`;
+      ${hint() ? `<div class="c-hint">${hint()}</div>` : ''}`;
   }
 
   function obstacles() {
