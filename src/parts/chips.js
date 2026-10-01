@@ -96,7 +96,7 @@ export function rubinGPU({ index = 0 } = {}) {
   [-1, 1].forEach((s, i) => {
     const d = new THREE.Mesh(box(36.2, dieH, 36.6), i ? R.dieB : R.dieA);
     d.position.set(0, top, s * 18.5);
-    tagPart(d, 'rubin-die', 'Rubin compute die', 'One of two reticle-sized GPU dies (TSMC 3nm). Together: 336B transistors, 50 PF NVFP4 inference.');
+    tagPart(d, 'rubin-die', 'Rubin compute die', 'One of two reticle-sized GPU dies (TSMC 3 nm-class). Together: 336B transistors, 50 PFLOPS NVFP4 inference.');
     dies.add(d);
   });
   g.add(dies);
@@ -122,7 +122,7 @@ export function rubinGPU({ index = 0 } = {}) {
   lidMark.rotation.x = -Math.PI / 2;
   lidMark.position.y = ST + 1.5 + 2.61;
   lid.add(lidMark);
-  tagPart(lid, 'gpu-lid', 'Integrated heat spreader (lid)', 'Nickel-plated copper lid shown on the GTC 2025 sample; marking "T TW 2538" = TSMC Taiwan, week 38 of 2025.');
+  tagPart(lid, 'gpu-lid', 'Integrated heat spreader (lid)', 'Nickel-plated lid as fitted to the GTC 2025 sample (marking "T TW 2538", likely a Taiwan / 2025 week-38 date code). Toggle it off to see the dies and HBM4 beneath.');
   explode(lid, 0, 40, 0);
   g.add(lid);
   explode(dies, 0, 10, 0);

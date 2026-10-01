@@ -79,8 +79,8 @@ export function buildPcbTextures(o) {
     }
   };
   for (const b of o.bundles || []) {
-    strokeBundle(c, b, 'rgba(70,62,48,0.55)');
-    strokeBundle(h, b, 'rgb(112,112,112)');
+    strokeBundle(c, b, 'rgba(62,56,45,0.45)');
+    strokeBundle(h, b, 'rgb(100,100,100)');
   }
 
   // ---- vias: dense fields of tiny tented vias

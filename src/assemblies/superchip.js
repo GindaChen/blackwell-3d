@@ -364,13 +364,13 @@ export function buildSuperchip() {
   const top = new THREE.MeshPhysicalMaterial({
     map: tex.map,
     normalMap: tex.normal,
-    normalScale: new THREE.Vector2(0.6, 0.6),
+    normalScale: new THREE.Vector2(0.32, 0.32),
     roughnessMap: tex.rm,
     metalnessMap: tex.rm,
     roughness: 1,
     metalness: 1,
-    clearcoat: 0.35,
-    clearcoatRoughness: 0.42,
+    clearcoat: 0.12,
+    clearcoatRoughness: 0.5,
   });
   const bottom = new THREE.MeshStandardMaterial({ color: '#24221f', roughness: 0.6 });
   const pcb = new THREE.Mesh(new THREE.BoxGeometry(BOARD.W, BOARD.T, BOARD.L), [M.pcbEdge, M.pcbEdge, top, bottom, M.pcbEdge, M.pcbEdge]);

@@ -206,7 +206,7 @@ export function lidTexture(seed = 1) {
     const c = makeCanvas(W, H);
     const ctx = c.getContext('2d');
     const r = rng(seed);
-    ctx.fillStyle = '#c9c5bd';
+    ctx.fillStyle = '#b9b5ad';
     ctx.fillRect(0, 0, W, H);
     // mottled plating
     for (let i = 0; i < 260; i++) {
@@ -277,9 +277,13 @@ export function hbmTexture() {
     const c = makeCanvas(w, h);
     const ctx = c.getContext('2d');
     const g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, '#d8d2c4'); g.addColorStop(1, '#c4bdae');
+    g.addColorStop(0, '#d2cbbb'); g.addColorStop(1, '#bdb5a4');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
+    // molded edge around the top base die
+    ctx.strokeStyle = 'rgba(60,55,48,0.55)';
+    ctx.lineWidth = 7;
+    ctx.strokeRect(3.5, 3.5, w - 7, h - 7);
     ctx.globalAlpha = 0.12;
     ctx.drawImage(noiseCanvas(w, h, { amp: 60, seed: 77 }), 0, 0);
     ctx.globalAlpha = 1;

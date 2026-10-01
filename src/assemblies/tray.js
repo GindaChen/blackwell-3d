@@ -469,7 +469,7 @@ function superchipCooling(sx) {
   for (const s of [-1, 1]) {
     const cp = coldPlate(90, 104, 9, { fittings: [[0, -36], [0, 36]] });
     cp.position.set(sx + s * 52, boardTop + 3.6, bz(-102));
-    tagPart(cp, 'gpu-coldplate', 'GPU cold plate', 'Direct-to-chip liquid cold plate. Each Rubin GPU dissipates ~1.8 kW; 45 °C inlet water removes it with no chillers.');
+    tagPart(cp, 'gpu-coldplate', 'GPU cold plate', 'Direct-to-chip liquid cold plate. Each Rubin GPU dissipates well over a kilowatt; NVIDIA designs for 45 °C inlet water so no chillers are needed.');
     gpuLift.add(cp);
   }
   g.add(gpuLift);

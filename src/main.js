@@ -181,7 +181,7 @@ function updateHover() {
 }
 
 // ---- boot ----
-requestAnimationFrame(() => {
+setTimeout(() => {
   const params = new URLSearchParams(location.search);
   setView(params.get('view') === 'tray' ? 'tray' : 'superchip', { instant: true });
   if (params.get('explode')) { explodeT = +params.get('explode'); $('explode').value = explodeT; applyExplode(); }
@@ -193,7 +193,7 @@ requestAnimationFrame(() => {
   $('loading').classList.add('done');
   setTimeout(() => $('loading').remove(), 800);
   renderer.setAnimationLoop(loop);
-});
+}, 0);
 
 // ---- render on demand, with full-quality AO only once the view settles ----
 let needsRender = true, lastMotion = 0, settledFrameDone = false;

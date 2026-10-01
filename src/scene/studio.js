@@ -34,7 +34,7 @@ function studioEnvironment(renderer) {
     env.add(m);
   };
   // big overhead softbox
-  panel(40, 26, 4.0, [0, 34, 0], [0, 0, 0]);
+  panel(40, 26, 3.0, [0, 34, 0], [0, 0, 0]);
   // narrow angled strip boxes: give flat metal and glass crisp highlight bands
   panel(40, 5, 5.0, [0, 22, -26], [0, 0, 0], 0xf4f6ff);
   panel(40, 4, 3.5, [0, 20, 27], [0, 0, 0], 0xfff6ea);
