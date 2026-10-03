@@ -2,7 +2,7 @@
 //
 // Step fields
 //   title, text        : what the panel says (keep it short)
-//   display            : { lids, cooling, floorplan } overrides for this step
+//   display            : { lids, cooling, floorplan, explode } overrides for this step
 //   dir                : camera direction (from the subject towards the camera), auto-framed
 //   zoom               : >1 pulls the camera back, <1 pushes in
 //   frame              : 'all' frames the whole model instead of just the parts involved
@@ -19,10 +19,14 @@
 // pair: how many `to` targets each `from` connects to: 'all' (default) | 'nearest' | n
 import { TRAY_STEPS } from './tours/tray.js';
 import { SUPERCHIP_STEPS } from './tours/superchip.js';
-import { NVL8_STEPS } from './tours/nvl8.js';
+import { SWITCH_STEPS } from './tours/switch.js';
+import { RACK_STEPS } from './tours/rack.js';
+import { HGX_STEPS } from './tours/hgx.js';
 
 export const TOURS = {
   superchip: SUPERCHIP_STEPS,
   tray: TRAY_STEPS,
-  nvl8: NVL8_STEPS,
+  switch: SWITCH_STEPS,
+  rack: RACK_STEPS,
+  hgx: HGX_STEPS,
 };

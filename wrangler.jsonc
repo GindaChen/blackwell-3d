@@ -1,9 +1,9 @@
-// Cloudflare Pages project for the Vite build in ./dist, served at https://verarubin.pages.dev.
+// Cloudflare Pages project for the Vite build in ./dist, served at https://blackwell3d.pages.dev.
 // Deploy from your machine with `npm run deploy` (after a one-time `npx wrangler login`); pushes to
 // main deploy automatically via .github/workflows/deploy.yml once the Cloudflare secrets are set.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "verarubin",
+  "name": "blackwell3d",
   "compatibility_date": "2026-10-01",
   "pages_build_output_dir": "./dist"
 }

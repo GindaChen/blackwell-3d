@@ -2,7 +2,7 @@ node_modules/
 dist/
 .DS_Store
 # Third-party reference photos are copyrighted; keep them local only.
-# Run `npm run fetch-refs` to re-download them (see reference/SOURCES.md).
+# See reference/SOURCES.md for the public sources used.
 reference/images/
 
 # Cloudflare Wrangler local state

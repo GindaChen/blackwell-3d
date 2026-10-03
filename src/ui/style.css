@@ -57,6 +57,7 @@ button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 .row input[type='checkbox'] { accent-color: var(--accent); width: var(--check); height: var(--check); margin: 0; flex: none; }
 
 body:not(.view-tray) .tray-only { display: none; }
+.hud-views .short { display: none; }
 
 .hud-svg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; overflow: visible; }
 .hud-svg .tag text { font-family: var(--font); font-weight: 600; font-size: 11.5px; font-stretch: var(--semi-wide); letter-spacing: 0.02em; }
@@ -110,7 +111,9 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   .hud-title { left: 16px; top: calc(14px + env(safe-area-inset-top)); gap: 8px; }
   .hud-title h1 { font-size: 19px; font-stretch: var(--semi-wide); }
   .hud-views { top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: space-between; }
-  .hud-views button { flex: 1; padding: 0 6px; font-stretch: 100%; }
+  .hud-views button { flex: 1; padding: 0 4px; font-stretch: 100%; }
+  .hud-views .long { display: none; }
+  .hud-views .short { display: inline; }
   .controls-body { display: block; }
   .row { white-space: normal; }
   .hud-controls { left: auto; right: 12px; width: auto; max-width: calc(100vw - 24px); bottom: calc(12px + var(--tap) + 8px + 10px + env(safe-area-inset-bottom)); padding: 4px 16px; }

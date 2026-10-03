@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const PROTECTED_NAMES = new Set(['vera-die', 'gpu-lid', 'cooling', 'gpu-coldplate-lift', 'floor']);
+const PROTECTED_NAMES = new Set(['grace-die', 'gpu-lid', 'cooling', 'gpu-coldplate-lift', 'floor', 'drawer']);
 
 const isBoundary = (o) => !!(o.userData.part || o.userData.explode || PROTECTED_NAMES.has(o.name));
 

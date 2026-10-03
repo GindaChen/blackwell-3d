@@ -19,7 +19,9 @@ export function buildPcbTextures(o) {
   const { W, L, ppm, seed = 1 } = o;
   const cw = Math.round(W * ppm), ch = Math.round(L * ppm);
   const X = (x) => (x + W / 2) * ppm;
-  const Z = (z) => (z + L / 2) * ppm;
+  // Canvas row 0 lands on the board's front edge (+z) on a BoxGeometry top face with flipY=false,
+  // so z is mirrored here to keep every feature under the part placed at the same board z.
+  const Z = (z) => (L / 2 - z) * ppm;
   const r = rng(seed);
 
   const col = makeCanvas(cw, ch); const c = col.getContext('2d');
@@ -154,6 +156,7 @@ export function buildPcbTextures(o) {
       ctx.font = `${s.weight || 600} ${s.size * ppm}px ${s.font || 'Helvetica, Arial, sans-serif'}`;
       ctx.textAlign = s.align || 'center';
       ctx.textBaseline = 'middle';
+      ctx.scale(1, -1); // undo the z mirror above so silkscreen reads upright from the front
       ctx.fillText(s.text, 0, 0);
     } else if (s.type === 'line') {
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(s.dx * ppm, s.dz * ppm); ctx.stroke();

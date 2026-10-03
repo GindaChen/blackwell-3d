@@ -1,6 +1,7 @@
 // Procedural silicon floorplans and package-top textures.
-// Floorplans are stylised after NVIDIA's published renders: the Rubin compute die (SM/GPC arrays,
-// L2 band, HBM PHY on the long edges), the Vera CPU die (88-core mesh), and small NIC/DPU dies.
+// Floorplans are stylised after NVIDIA's published die shots and renders: the Blackwell compute
+// die (GPC arrays, L2 band, HBM3e PHYs on the short edges, NV-HBI on the long edge), the Grace
+// CPU die (core mesh), and small NIC/DPU/switch dies.
 import { makeCanvas, canvasTexture, rng, noiseCanvas, heightToNormal } from '../lib/util.js';
 
 const cache = new Map();
@@ -34,78 +35,89 @@ function smTile(ctx, x, y, w, h, r, hue) {
   for (let k = 0; k < h * 0.3; k += 2) ctx.fillRect(x + 1, y + h * 0.66 + k, w - 2, 0.7);
 }
 
-/** Rubin compute die (one of two reticle-sized dies). mirror=true flips for the sibling die. */
-export function rubinDie(mirror = false) {
-  return memo(`rubin-${mirror}`, () => {
-    const W = 1024, H = 1024;
+/**
+ * Blackwell compute die (one of two reticle-limited dies, ~26 x 33 mm, TSMC 4NP).
+ * Canvas is portrait (long edge vertical). HBM3e PHYs sit on the two short edges (top/bottom),
+ * the 10 TB/s NV-HBI die-to-die interface runs down the long edge facing the sibling die
+ * (right edge, or left when mirror=true).
+ */
+export function blackwellDie(mirror = false) {
+  return memo(`blackwell-${mirror}`, () => {
+    const W = 816, H = 1024;
     const c = makeCanvas(W, H);
     const ctx = c.getContext('2d');
-    const r = rng(mirror ? 21 : 20);
-    ctx.fillStyle = '#15191d';
+    const r = rng(mirror ? 23 : 22);
+    ctx.fillStyle = '#14181c';
     ctx.fillRect(0, 0, W, H);
-    // HBM PHY strips along left & right edges (die faces HBM stacks on both sides)
-    for (const x0 of [14, W - 14 - 70]) {
-      ctx.fillStyle = '#2b2a26';
-      ctx.fillRect(x0, 20, 70, H - 40);
-      for (let y = 26; y < H - 30; y += 7) {
-        ctx.fillStyle = `rgba(${180 + r() * 40},${160 + r() * 30},${110},0.35)`;
-        ctx.fillRect(x0 + 6, y, 58, 3);
-      }
-      for (let b = 0; b < 4; b++) {
+    // HBM3e PHY strips along the top and bottom (short) edges: two PHYs each, one per stack
+    for (const y0 of [14, H - 14 - 64]) {
+      for (let b = 0; b < 2; b++) {
+        const bx = 20 + b * ((W - 40) / 2), bw = (W - 40) / 2 - 8;
+        ctx.fillStyle = '#2b2a26';
+        ctx.fillRect(bx, y0, bw, 64);
+        for (let x = bx + 6; x < bx + bw - 6; x += 6) {
+          ctx.fillStyle = `rgba(${180 + r() * 40},${160 + r() * 30},110,0.35)`;
+          ctx.fillRect(x, y0 + 6, 3, 52);
+        }
         ctx.strokeStyle = 'rgba(200,190,150,0.4)';
-        ctx.strokeRect(x0 + 2, 24 + b * ((H - 48) / 4), 66, (H - 48) / 4 - 6);
+        ctx.strokeRect(bx + 2, y0 + 2, bw - 4, 60);
       }
     }
-    // die-to-die (NV-HBI) interface strip at the edge facing the sibling die
-    const d2dY = mirror ? 14 : H - 14 - 46;
+    // NV-HBI die-to-die strip on the long edge that faces the sibling die
+    const d2dX = mirror ? 14 : W - 14 - 52;
     ctx.fillStyle = '#2f2c25';
-    ctx.fillRect(96, d2dY, W - 192, 46);
-    for (let x = 100; x < W - 100; x += 5) {
+    ctx.fillRect(d2dX, 92, 52, H - 184);
+    for (let y = 96; y < H - 96; y += 5) {
       ctx.fillStyle = `rgba(210,190,130,${0.25 + r() * 0.2})`;
-      ctx.fillRect(x, d2dY + 6, 2.5, 34);
+      ctx.fillRect(d2dX + 6, y, 40, 2.5);
     }
-    // GPC array: 4 columns x 2 rows of GPCs, each a grid of SM tiles
-    const ax = 100, ay = mirror ? 80 : 30, aw = W - 200, ah = H - 110;
-    const l2h = 120; // L2 / crossbar band through the middle
-    const gpcCols = 4, gpcRows = 2;
+    // PCIe / NVLink 5 SerDes on the outer long edge
+    const ioX = mirror ? W - 14 - 40 : 14;
+    ctx.fillStyle = '#29271f';
+    ctx.fillRect(ioX, 92, 40, H - 184);
+    for (let y = 96; y < H - 96; y += 9) {
+      ctx.fillStyle = `rgba(190,170,120,${0.18 + r() * 0.2})`;
+      ctx.fillRect(ioX + 5, y, 30, 4);
+    }
+    // GPC array: 2 columns x 4 rows of GPCs, L2 band across the middle
+    const ax = mirror ? 80 : 68, ay = 92, aw = W - 148, ah = H - 184;
+    const l2h = 110;
+    const gpcCols = 2, gpcRows = 4;
     const gw = (aw - (gpcCols - 1) * 10) / gpcCols;
-    const gh = (ah - l2h - 20) / gpcRows;
+    const gh = (ah - l2h - 40) / gpcRows;
     for (let gy = 0; gy < gpcRows; gy++) {
       for (let gx = 0; gx < gpcCols; gx++) {
         const x = ax + gx * (gw + 10);
-        const y = ay + gy * (gh + l2h + 20);
-        const hue = 150 + (gx / gpcCols) * 140 + (mirror ? 20 : 0); // teal -> violet sweep
+        const y = ay + gy * (gh + 10) + (gy >= gpcRows / 2 ? l2h + 10 : 0);
+        const hue = 95 + (gy / gpcRows) * 60 + gx * 14 + (mirror ? 12 : 0); // NVIDIA-green -> teal sweep
         ctx.fillStyle = `hsl(${hue}, 16%, 15%)`;
         ctx.fillRect(x, y, gw, gh);
-        const tc = 4, tr = 4;
+        const tc = 4, tr = 2;
         const tw = (gw - 12 - (tc - 1) * 4) / tc;
-        const th = (gh - 40 - (tr - 1) * 4) / tr;
+        const th = (gh - 34 - (tr - 1) * 4) / tr;
         for (let i = 0; i < tc; i++) for (let j = 0; j < tr; j++)
           smTile(ctx, x + 6 + i * (tw + 4), y + 6 + j * (th + 4), tw, th, r, hue);
-        // raster / polymorph engine strip
         ctx.fillStyle = `hsl(${hue}, 20%, 30%)`;
-        ctx.fillRect(x + 6, y + gh - 30, gw - 12, 22);
+        ctx.fillRect(x + 6, y + gh - 24, gw - 12, 18);
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        for (let k = x + 8; k < x + gw - 8; k += 3) ctx.fillRect(k, y + gh - 28, 1, 18);
+        for (let k = x + 8; k < x + gw - 8; k += 3) ctx.fillRect(k, y + gh - 22, 1, 14);
       }
     }
-    // L2 cache band: dense SRAM macro texture
-    const ly = ay + gh + 10;
+    // L2 cache band
+    const ly = ay + (gpcRows / 2) * (gh + 10);
     ctx.fillStyle = '#3a3d3a';
     ctx.fillRect(ax, ly, aw, l2h);
-    for (let i = 0; i < 16; i++) {
-      const x = ax + 4 + i * ((aw - 8) / 16);
+    for (let i = 0; i < 12; i++) {
+      const x = ax + 4 + i * ((aw - 8) / 12);
       ctx.fillStyle = `hsl(${60 + r() * 30}, 10%, ${34 + r() * 8}%)`;
-      ctx.fillRect(x, ly + 4, (aw - 8) / 16 - 4, l2h / 2 - 6);
-      ctx.fillRect(x, ly + l2h / 2 + 2, (aw - 8) / 16 - 4, l2h / 2 - 6);
+      ctx.fillRect(x, ly + 4, (aw - 8) / 12 - 4, l2h / 2 - 6);
+      ctx.fillRect(x, ly + l2h / 2 + 2, (aw - 8) / 12 - 4, l2h / 2 - 6);
     }
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     for (let y = ly + 4; y < ly + l2h - 4; y += 2) ctx.fillRect(ax + 4, y, aw - 8, 0.8);
-    // crossbar spine
     ctx.fillStyle = 'rgba(200,180,120,0.25)';
-    ctx.fillRect(ax + aw / 2 - 18, ly, 36, l2h);
+    ctx.fillRect(ax, ly + l2h / 2 - 14, aw, 28);
     sealRing(ctx, W, H, 4);
-    // overlay noise for grit
     ctx.globalAlpha = 0.06;
     ctx.drawImage(noiseCanvas(W, H, { amp: 50, seed: 9 }), 0, 0);
     ctx.globalAlpha = 1;
@@ -113,47 +125,52 @@ export function rubinDie(mirror = false) {
   });
 }
 
-export function veraDie() {
-  return memo('vera', () => {
-    const W = 1024, H = 1152;
+/** Grace CPU die: 76 Neoverse V2 cores on the Scalable Coherency Fabric mesh (72 enabled). */
+export function graceDie() {
+  return memo('grace', () => {
+    const W = 1024, H = 1088;
     const c = makeCanvas(W, H);
     const ctx = c.getContext('2d');
-    const r = rng(33);
+    const r = rng(34);
     ctx.fillStyle = '#121619';
     ctx.fillRect(0, 0, W, H);
-    // 88 cores: 8 columns x 11 rows mesh with SCF fabric lines between
-    const cols = 8, rows = 11, x0 = 70, y0 = 60, cw = (W - 140) / cols, chh = (H - 280) / rows;
+    // 8 columns x 10 rows mesh; four tiles are I/O / cache-coherent gateways instead of cores
+    const cols = 8, rows = 10, x0 = 74, y0 = 70, cw = (W - 148) / cols, chh = (H - 300) / rows;
+    const gateways = new Set(['0,4', '7,4', '0,5', '7,5']);
     for (let j = 0; j < rows; j++)
       for (let i = 0; i < cols; i++) {
         const x = x0 + i * cw, y = y0 + j * chh;
-        const hue = 165 + r() * 25 + (i / cols) * 20;
-        ctx.fillStyle = `hsl(${hue}, 25%, 24%)`;
+        if (gateways.has(`${i},${j}`)) {
+          ctx.fillStyle = 'hsl(40, 18%, 30%)';
+          ctx.fillRect(x + 3, y + 3, cw - 6, chh - 6);
+          continue;
+        }
+        const hue = 95 + r() * 25 + (j / rows) * 30;
+        ctx.fillStyle = `hsl(${hue}, 22%, 22%)`;
         ctx.fillRect(x + 3, y + 3, cw - 6, chh - 6);
-        // core logic + L2 slice
-        ctx.fillStyle = `hsl(${hue + 15}, 35%, 40%)`;
-        ctx.fillRect(x + 6, y + 6, cw * 0.55, chh - 12);
-        ctx.fillStyle = `hsl(${hue - 30}, 20%, 46%)`;
-        ctx.fillRect(x + cw * 0.62, y + 6, cw * 0.3, chh - 12);
+        ctx.fillStyle = `hsl(${hue + 10}, 32%, 38%)`;
+        ctx.fillRect(x + 6, y + 6, cw * 0.5, chh - 12);
+        ctx.fillStyle = `hsl(${hue - 40}, 18%, 46%)`;
+        ctx.fillRect(x + cw * 0.58, y + 6, cw * 0.34, chh - 12);
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        for (let k = y + 7; k < y + chh - 7; k += 2) ctx.fillRect(x + cw * 0.62, k, cw * 0.3, 0.7);
+        for (let k = y + 7; k < y + chh - 7; k += 2) ctx.fillRect(x + cw * 0.58, k, cw * 0.34, 0.7);
       }
-    // SCF mesh lines
     ctx.strokeStyle = 'rgba(190,230,140,0.25)';
     ctx.lineWidth = 2;
     for (let i = 0; i <= cols; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * cw, y0); ctx.lineTo(x0 + i * cw, y0 + rows * chh); ctx.stroke(); }
     for (let j = 0; j <= rows; j++) { ctx.beginPath(); ctx.moveTo(x0, y0 + j * chh); ctx.lineTo(x0 + cols * cw, y0 + j * chh); ctx.stroke(); }
-    // I/O: LPDDR5X PHY on sides, NVLink-C2C + PCIe along bottom
+    // LPDDR5X PHYs on both sides, NVLink-C2C + PCIe Gen5 along the bottom
     ctx.fillStyle = '#2d2b26';
-    ctx.fillRect(14, 50, 46, H - 260);
-    ctx.fillRect(W - 60, 50, 46, H - 260);
-    ctx.fillRect(40, H - 200, W - 80, 170);
+    ctx.fillRect(14, 60, 50, H - 300);
+    ctx.fillRect(W - 64, 60, 50, H - 300);
+    ctx.fillRect(40, H - 220, W - 80, 190);
     for (let x = 50; x < W - 50; x += 6) {
       ctx.fillStyle = `rgba(200,180,130,${0.2 + r() * 0.2})`;
-      ctx.fillRect(x, H - 190, 3, 60);
+      ctx.fillRect(x, H - 210, 3, 70);
     }
-    for (let i = 0; i < 6; i++) {
-      ctx.fillStyle = `hsl(${250 + r() * 30}, 18%, 34%)`;
-      ctx.fillRect(60 + i * ((W - 120) / 6), H - 118, (W - 120) / 6 - 10, 80);
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = `hsl(${120 + r() * 40}, 16%, 32%)`;
+      ctx.fillRect(60 + i * ((W - 120) / 4), H - 128, (W - 120) / 4 - 10, 84);
     }
     sealRing(ctx, W, H, 4);
     return canvasTexture(c);
@@ -199,10 +216,10 @@ export function smallDie(seed = 5, hueA = 200, hueB = 280) {
   });
 }
 
-/** Nickel IHS lid with laser marking (matches the GTC 2025 sample: "NVIDIA  T TW 2538  U9C643.07V e1"). */
+/** Nickel heat-spreader lid with a generic laser marking. */
 export function lidTexture(seed = 1) {
   return memo(`lid-${seed}`, () => {
-    const W = 880, H = 1020;
+    const W = 1000, H = 1000;
     const c = makeCanvas(W, H);
     const ctx = c.getContext('2d');
     const r = rng(seed);
@@ -227,14 +244,14 @@ export function lidTexture(seed = 1) {
     ctx.fillStyle = 'rgba(95,90,82,0.85)';
     ctx.textBaseline = 'middle';
     ctx.font = '700 60px Helvetica, Arial, sans-serif';
-    ctx.fillText('NVIDIA', -300, -230);
+    ctx.fillText('NVIDIA', -300, -200);
     ctx.font = '56px "Courier New", monospace';
-    ctx.fillText('T TW', -300, -110);
-    ctx.fillText('2538', 30, -110);
-    ctx.fillText('U9C643.07V', -300, 10);
-    ctx.beginPath(); ctx.arc(130 + 155, 10, 32, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(95,90,82,0.85)'; ctx.stroke();
+    ctx.fillText('B200', -300, -80);
+    ctx.fillText('TW  2442', 0, -80);
+    ctx.fillText('G100-A01', -300, 40);
+    ctx.beginPath(); ctx.arc(200, 40, 32, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(95,90,82,0.85)'; ctx.stroke();
     ctx.font = '40px "Courier New", monospace';
-    ctx.fillText('e1', 130 + 136, 12);
+    ctx.fillText('e1', 181, 42);
     ctx.restore();
     // pin-1 notch mark
     ctx.fillStyle = 'rgba(80,75,70,0.6)';
@@ -270,7 +287,7 @@ export function substrateTexture({ w = 920, h = 1060, color = '#1b1d1c', capColo
   });
 }
 
-/** HBM4 stack top: polished base-die silicon (beige) with a faint grid. */
+/** HBM3e stack top: polished base-die silicon (beige) with a faint grid. */
 export function hbmTexture() {
   return memo('hbm', () => {
     const w = 256, h = 256;
@@ -293,22 +310,21 @@ export function hbmTexture() {
   });
 }
 
-/** Laser-marked CPU die (polished black silicon, white marking like the GTC sample). */
-export function veraMarkedDie() {
-  return memo('vera-mark', () => {
-    const W = 1000, H = 1160;
+/** Laser-marked Grace die (polished black silicon backside, white marking). */
+export function graceMarkedDie() {
+  return memo('grace-mark', () => {
+    const W = 1000, H = 1060;
     const c = makeCanvas(W, H);
     const ctx = c.getContext('2d');
-    // faint floorplan ghosting under the polished backside
-    ctx.drawImage(veraDie().image, 0, 0, W, H);
+    ctx.drawImage(graceDie().image, 0, 0, W, H);
     ctx.fillStyle = 'rgba(8,10,12,0.88)';
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(200,205,210,0.75)';
     ctx.font = 'italic 800 96px Helvetica, Arial, sans-serif';
     ctx.fillText('NVIDIA', 180, 330);
     ctx.font = '58px "Courier New", monospace';
-    ctx.fillText('8 ER   2535', 210, 440);
-    ctx.fillText('E74309.000', 210, 520);
+    ctx.fillText('GRACE  2440', 190, 440);
+    ctx.fillText('TH500-A1', 190, 520);
     ctx.beginPath(); ctx.arc(640, 500, 30, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(200,205,210,0.7)'; ctx.stroke();
     return canvasTexture(c);
   });

@@ -3,10 +3,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStudio } from './scene/studio.js';
 import { buildSuperchip, setLids } from './assemblies/superchip.js';
 import { buildComputeTray, setCooling, setColdPlateLift } from './assemblies/tray.js';
-import { buildNVL8Tray } from './assemblies/nvl8.js';
-import { veraDieMaterials } from './parts/chips.js';
+import { buildSwitchTray } from './assemblies/switchTray.js';
+import { buildHGXB200 } from './assemblies/hgx.js';
+import { buildRack, RACK_H } from './assemblies/rack.js';
+import { graceDieMaterials } from './parts/chips.js';
 import { easeInOut } from './lib/util.js';
-import { createAnnotator, partOf, isShown } from './annotations/annotator.js';
+import { createAnnotator, partOf, isShown, isDescendant } from './annotations/annotator.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { createTour } from './tour/tour.js';
 
@@ -31,41 +33,56 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.maxPolarAngle = Math.PI; // free orbit: the hardware floats, so viewing from below is allowed
 controls.minDistance = 4;
-controls.maxDistance = 400;
+controls.maxDistance = 800;
 
 // mm -> scene units (cm)
 const MM = 0.1;
 
 const views = {
   superchip: {
-    title: 'Vera Rubin Superchip',
+    title: 'GB200 Grace Blackwell Superchip',
     cams: {
       hero: { pos: [27, 33, 40], target: [0, 0, 1.5] },
       top: { pos: [0, 62, 0.01], target: [0, 0, 0] },
       front: { pos: [0, 14, 52], target: [0, 0, 2] },
       close: { pos: [9, 9, -2], target: [3, 0, -9] },
     },
-    lift: 0,
-  },
-  nvl8: {
-    title: 'HGX Rubin NVL8 GPU Tray',
-    cams: {
-      hero: { pos: [-60, 60, 88], target: [0, 0, 2] },
-      top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
-      front: { pos: [10, 16, 92], target: [0, 2, 20] },
-      close: { pos: [-12, 22, 12], target: [-6, 2, 0] },
-    },
-    lift: 0,
   },
   tray: {
-    title: 'Vera Rubin NVL72 Compute Tray',
+    title: 'GB200 NVL72 Compute Tray',
     cams: {
       hero: { pos: [62, 58, 88], target: [0, 0, 4] },
       top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
       front: { pos: [-12, 16, 92], target: [0, 2, 20] },
       close: { pos: [18, 20, -12], target: [10, 2, -26] },
     },
-    lift: 0,
+  },
+  switch: {
+    title: 'NVLink Switch Tray',
+    cams: {
+      hero: { pos: [-62, 58, 88], target: [0, 0, 0] },
+      top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
+      front: { pos: [12, 16, 92], target: [0, 2, 20] },
+      close: { pos: [-20, 22, 2], target: [-10, 1, -7] },
+    },
+  },
+  rack: {
+    title: 'GB200 NVL72 Rack',
+    cams: {
+      hero: { pos: [260, 110, 420], target: [0, 0, 20] },
+      top: { pos: [0, 420, 0.01], target: [0, 0, 0] },
+      front: { pos: [0, 10, 400], target: [0, 0, 0] },
+      close: { pos: [-150, 40, -190], target: [0, 0, -40] },
+    },
+  },
+  hgx: {
+    title: 'HGX B200 (8-GPU)',
+    cams: {
+      hero: { pos: [-62, 70, 92], target: [0, 3, 2] },
+      top: { pos: [0, 130, 0.01], target: [0, 0, 0] },
+      front: { pos: [10, 20, 95], target: [0, 4, 20] },
+      close: { pos: [-14, 26, 14], target: [-6, 6, 0] },
+    },
   },
 };
 
@@ -86,6 +103,23 @@ function applyExplode() {
   for (const [o, { base, off }] of explodables) o.position.copy(base).addScaledVector(off, t);
 }
 
+// Assemblies shared between views (the rack's open drawers are clones of the tray views).
+const models = {};
+function model(name) {
+  if (models[name]) return models[name];
+  if (name === 'tray') models.tray = buildComputeTray(buildSuperchip);
+  else if (name === 'switch') models.switch = buildSwitchTray();
+  return models[name];
+}
+/** Clone a tray model as it is with the explode slider at 0. */
+function pristineClone(m) {
+  const moved = [];
+  for (const [o, { base }] of explodables) if (isDescendant(o, m)) { moved.push([o, o.position.clone()]); o.position.copy(base); }
+  const c = m.clone(true);
+  for (const [o, p] of moved) o.position.copy(p);
+  return c;
+}
+
 function build(name) {
   if (roots[name]) return roots[name];
   const g = new THREE.Group();
@@ -94,11 +128,14 @@ function build(name) {
     const sc = buildSuperchip();
     sc.position.y = 4.0;
     g.add(sc);
-    window.__superchip = sc;
-  } else if (name === 'nvl8') {
-    g.add(buildNVL8Tray());
+  } else if (name === 'hgx') {
+    g.add(buildHGXB200());
+  } else if (name === 'rack') {
+    const rack = buildRack({ computeTray: pristineClone(model('tray')), switchTray: pristineClone(model('switch')) });
+    rack.position.y = -RACK_H / 2;
+    g.add(rack);
   } else {
-    g.add(buildComputeTray(buildSuperchip));
+    g.add(model(name));
   }
   registerExplodables(g);
   scene.add(g);
@@ -140,15 +177,21 @@ function setView(name, { instant = false } = {}) {
   build(name).visible = true;
   document.getElementById('view-title').textContent = v.title;
   document.body.classList.toggle('view-tray', name !== 'superchip');
+  document.body.dataset.view = name;
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   applyToggles();
   applyExplode();
   invalidate({ shadows: true });
-  // keep the shadow frustum tight around the visible model for crisp shadows
-  const s = name === 'superchip' ? 30 : 60;
+  // keep the shadow frustum tight around the visible model for crisp shadows; the 2.2 m rack
+  // needs the key light, shadow camera and floor pushed out
+  const rack = name === 'rack';
+  const s = name === 'superchip' ? 30 : rack ? 135 : 60;
   const sc = studio.key.shadow.camera;
   sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s;
+  sc.far = rack ? 900 : 220;
   sc.updateProjectionMatrix();
+  studio.key.position.set(-30, 70, 35).multiplyScalar(rack ? 3.4 : 1);
+  studio.floor.position.y = rack ? -(RACK_H / 2) * MM - 0.5 : -12;
   if (instant) {
     const h = preset(v.cams.hero);
     camera.position.set(...h.pos);
@@ -169,8 +212,8 @@ function applyToggles() {
     setCooling(r, display.cooling);
     setColdPlateLift(r, display.lids);
   }
-  const vm = veraDieMaterials();
-  scene.traverse((o) => { if (o.name === 'vera-die') o.material = display.floorplan ? vm.floorplan : vm.marked; });
+  const gm = graceDieMaterials();
+  scene.traverse((o) => { if (o.name === 'grace-die') o.material = display.floorplan ? gm.floorplan : gm.marked; });
   annotator.refresh();
   invalidate({ shadows: true });
 }
@@ -186,10 +229,11 @@ const tour = createTour({
   getRoot: () => roots[current],
   getView: () => current,
   setView: (name) => { if (name !== current) setView(name, { instant: true }); },
-  getDisplay: () => ({ ...display }),
-  setDisplay: (d) => {
+  getDisplay: () => ({ ...display, explode: explodeT }),
+  setDisplay: ({ explode: ex, ...d }) => {
     Object.assign(display, d);
     for (const k of Object.keys(display)) $(k).checked = display[k];
+    if (ex != null) { explodeT = ex; $('explode').value = ex; applyExplode(); }
     applyToggles();
   },
   flyTo,
@@ -351,4 +395,4 @@ function capture(width, height, supersample = 2) {
   return out;
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, roots: () => roots[current], capture };
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture };

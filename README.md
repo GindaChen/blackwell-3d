@@ -1,44 +1,41 @@
-# Vera Rubin 3D
+# Blackwell 3D
 
-An interactive, physically-based 3D model of NVIDIA's **Vera Rubin** hardware, built procedurally in
-three.js from public photographs and renders. It's meant to grow into a learning tool.
+An interactive, physically based 3D model of NVIDIA **Blackwell** hardware, from a single B200 package up to a full
+**GB200 NVL72** rack. Everything is built procedurally in three.js.
 
-**Hover any component to trace its connections.** Animated, colour-coded pathways arc to every part it
-talks to: NVLink, NVLink-C2C, HBM4, LPDDR5X, PCIe, network, power, coolant and management. Each
-connected part is bracketed and labelled. A callout card sits off to the side with a leader line, so it
-never covers the part. Click to pin a selection while you orbit or explode. Press Esc or click empty space to release it.
+This is a fork of [bddicken/nvidia](https://github.com/bddicken/nvidia) (the Vera Rubin 3D model). It keeps that
+project's rendering, hover-tracing and guided-tour engine, and replaces all of the hardware with Blackwell parts.
 
-**Guided mode.** Switch the Free / Guided toggle (top-left) to Guided to walk through twelve short steps that follow an AI model through the NVL72 compute tray:
-1. Plugging into the rack.
-2. Power-on and boot.
-3. External networking.
-4. The cable-free midplane.
-5. Loading weights into CPU memory.
-6. NVLink-C2C into the GPUs.
-7. Weights in HBM4.
-8. A request arriving over GPUDirect RDMA.
-9. Execution on the tensor cores.
-10. NVLink 6 scale-up across the rack.
-11. Results going back out.
+**Hover any component to trace its connections.** Colour-coded pathways arc to every part it talks to: NVLink 5,
+NVLink-C2C, HBM3e, NV-HBI, LPDDR5X, PCIe Gen5, network, power, coolant and management. Click to pin a selection,
+and press Esc or click empty space to release it.
 
-Each step frames the camera on the parts involved and draws directional, colour-coded flows. You can still
-orbit, and ← / → or the arrows step through the tour. Esc or the Free mode toggle returns to free exploration, and
-`?tour=5` opens the tour at a given step.
+**Guided mode** (top-left toggle) runs a short tour for the model on screen. Use ← / → to step through it, and
+`?tour=3` to open a tour at a given step.
 
 ## Views
 
-- **Superchip**: one Vera CPU, two Rubin GPUs (2 compute dies + 8 HBM4 each), 8 SOCAMM2 LPDDR5X
-  modules, NVLink 6 spine connectors, PCIe Gen6 midplane connectors and the power delivery around them.
-- **Compute tray**: the 1U MGX NVL72 tray. It holds two superchips, four ConnectX-9 SuperNICs per side, a BlueField-4 DPU,
-  a management module, power distribution, the midplanes, liquid cold plates, copper plumbing and the rear
-  blind-mate coolant/power connectors.
-- **8-GPU tray (HGX Rubin NVL8)**: eight Rubin GPUs on GPU modules over an HGX baseboard with four on-board NVLink 6
-  switches (all-to-all, 3.6 TB/s per GPU), host connectors to a separate CPU tray (Vera or x86), eight black cold
-  plates on a central coolant manifold with quick-disconnect couplings and braided hoses, and rear UQDs, busbar and power.
+| View | `?view=` | What's in it |
+|---|---|---|
+| **GB200 superchip** | `superchip` | The "Bianca" board: 1 Grace CPU (72 Neoverse V2 cores) with 16 soldered LPDDR5X packages, 2 B200 GPUs (two dies side by side + 8 HBM3e each), NVLink 5 backplane connectors at the rear, PCIe Gen5 cable connectors at the front, and all VRMs and passives. |
+| **Compute tray** | `tray` | 1U NVL72 compute tray: 2 superchips, 4 ConnectX-7 cards (one per GPU), 2 BlueField-3 DPUs, 4 E1.S drives, a fan wall for the air-cooled front I/O, **internal twinax cables** (GB200 has no midplane), PDBs, cold plates and hoses. |
+| **Switch tray** | `switch` | 1U NVLink switch tray: 2 NVLink 5 switch chips (72 ports, 7.2 TB/s each), management CPU and BMC, spine connectors, liquid cooling. |
+| **NVL72 rack** | `rack` | 18 compute trays, 9 switch trays, 8 power shelves, the copper NVLink spine (4 cable cartridges), the DC busbar and the coolant manifolds. The explode slider pulls out one compute tray and one switch tray at full detail. Hover a B200 in the open tray to trace its NVLink path through the spine to the switch chips. |
+| **HGX B200** | `hgx` | Air-cooled 8-GPU baseboard: 8 SXM modules with tall vapor-chamber heatsinks, 2 NVLink switch chips in the centre, 8 PCIe Gen5 host connectors and a fan wall. |
 
-Controls include an exploded view, GPU heat-spreader lids on or off, the CPU die look (laser-marked
-backside or floorplan), cold plates on or off (both trays), and camera presets. URL parameters let you link to a state:
-`?view=tray&explode=0.6&lids=1&cooling=0&cam=close`.
+Display options: explode, heat-spreader lids, Grace die floorplan, and coolers (cold plates and heatsinks).
+URL parameters link to a state, for example `?view=rack&explode=1&cooling=0&cam=hero`.
+
+### What's different from the Vera Rubin model
+
+| | Vera Rubin (upstream) | Blackwell (this fork) |
+|---|---|---|
+| GPU package | 2 dies, HBM4 columns | 2 dies side by side (NV-HBI 10 TB/s), 4 HBM3e above and 4 below |
+| CPU + memory | Vera + SOCAMM2 modules | Grace + soldered LPDDR5X |
+| Tray I/O | cable-free midplane, fanless | internal cables, fan wall |
+| NVLink | gen 6, 3.6 TB/s/GPU | gen 5, 1.8 TB/s/GPU, 130 TB/s per rack |
+| HGX | NVL8, liquid | HGX B200, air-cooled heatsinks |
+| Extra | | NVLink switch tray and the full NVL72 rack |
 
 ## Running
 
@@ -47,61 +44,39 @@ npm install
 npm run dev
 ```
 
-## Deploying to Cloudflare
-
-The site is a static Vite build hosted on **Cloudflare Pages** at https://verarubin.pages.dev (`wrangler.jsonc`).
-
-Deploy from your machine (after a one-time `npx wrangler login`):
-
-```bash
-npm run deploy
-```
-
-To test locally in Cloudflare's runtime first, run `npm run cf:dev`.
-
-**Auto-deploy on push.** `.github/workflows/deploy.yml` deploys every push to `main` once the repository has two secrets:
-- `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN`: an API token with **Account → Cloudflare Pages → Edit**
-
-Until both are set, the workflow builds and skips the deploy step.
-
 ## How it's built
 
-Everything is generated in code. There are no downloaded meshes and no image textures:
+As upstream, everything is generated in code, with no downloaded meshes or image textures. Dimensions are
+estimates scaled from public photos and specs (see [reference/SOURCES.md](reference/SOURCES.md)). The design
+notes are in [docs/2026-10-03-blackwell-design.md](docs/2026-10-03-blackwell-design.md).
 
 | Area | File |
-| --- | --- |
-| Superchip layout (measured from the GTC photos at ~0.48 mm/px) | `src/assemblies/superchip.js` |
-| Compute tray layout | `src/assemblies/tray.js` |
-| HGX Rubin NVL8 GPU tray layout | `src/assemblies/nvl8.js` |
-| Chip packages (Rubin GPU, Vera CPU, small packages) | `src/parts/chips.js` |
-| Connectors, SOCAMM, inductors, instancing helper | `src/parts/boardParts.js` |
+|---|---|
+| GB200 superchip (Bianca) layout | `src/assemblies/superchip.js` |
+| GB200 NVL72 compute tray | `src/assemblies/tray.js` |
+| NVLink switch tray | `src/assemblies/switchTray.js` |
+| NVL72 rack (LOD shells + full-detail drawers, spine, busbar, manifolds) | `src/assemblies/rack.js` |
+| HGX B200 | `src/assemblies/hgx.js` |
+| Chip packages (B200, Grace, small packages) | `src/parts/chips.js` |
+| Connectors, LPDDR5X, inductors, instancing helper | `src/parts/boardParts.js` |
 | PCB texture set: mask, traces, vias, ENIG pads, silkscreen, normal map | `src/textures/pcb.js` |
-| Die floorplans, lid marking, substrates | `src/textures/silicon.js` |
-| Studio lighting, shadows, GTAO, tone mapping | `src/scene/studio.js` |
-| Draw-call optimizer (merges static meshes per part) | `src/lib/optimize.js` |
-| Connection graph (roles, links, buses, bandwidths) | `src/annotations/connections.js` |
-| Hover/pin pathways, brackets, callout placement | `src/annotations/annotator.js` |
-| Guided tour steps (text, flows, camera) | `src/tour/steps.js` |
-| Guided tour controller (framing, flow arrows, panel) | `src/tour/tour.js` |
+| Die floorplans (Blackwell, Grace), lid marking, substrates | `src/textures/silicon.js` |
+| Connection graph (what each part talks to) | `src/annotations/connections.js` |
+| Guided tours | `src/tour/tours/*.js` |
 
-The PCB texture is built from the same placement list as the 3D parts. Every capacitor sits on its own
-pads and every package has its own silkscreen outline.
+The rack stays interactive because 25 of its 27 trays are closed shells that share geometry. The two open drawers
+are clones of the tray-view models, with their inner explode offsets stripped so the slider moves only the drawers.
 
-Scene units are centimetres. Models are authored in millimetres and scaled by 0.1.
+`src/textures/pcb.js` also fixes a mirror in upstream's PCB mapping: silkscreen and pads used to land at the
+opposite end of the board from the parts that own them.
 
-## Reference imagery
+## Deploying
 
-`reference/sources.json` lists the photos and renders the model is based on, with their source pages.
-They're copyrighted by their owners, so they're git-ignored. Run `npm run fetch-refs` to download them
-into `reference/images/` for local study.
+This is a static Vite build. `npm run deploy` publishes it to Cloudflare Pages as project `blackwell3d` (after a
+one-time `npx wrangler login`). `.github/workflows/deploy.yml` deploys every push to `main` once the
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` secrets are set. Until then it builds and skips the deploy step.
 
-## Accuracy notes
+## Credits
 
-- The board and package dimensions are estimates scaled from photos. NVIDIA hasn't published mechanical drawings.
-- Some details are plausible stand-ins rather than confirmed hardware, including passive placement, silkscreen text,
-  front-panel port layout, the management and power-distribution modules and the cold-plate plumbing.
-- In the NVL8 tray, the four NVLink switches' location under the manifold spine, the host-connector strip and the
-  GPU-module VRM layout are informed guesses; the cold plates, manifold, couplings, hoses and bezel follow the GTC photo.
-- The GPU dies show a stylised floorplan, as in NVIDIA's own renders. Real dies are covered by a lid or a
-  cold plate, and real bare silicon backsides look like dark mirrors.
+Engine, art direction and the original Vera Rubin model by [@bddicken](https://github.com/bddicken). Upstream has
+no license file, so ask the author before redistributing.

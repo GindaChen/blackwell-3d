@@ -13,13 +13,13 @@
 //   alt    : { [fallbackId]: { label, group } } overrides when a fallback id from `to` was used
 
 export const BUSES = {
-  nvlink: { name: 'NVLink 6', color: '#38d5ff' },
+  nvlink: { name: 'NVLink 5', color: '#38d5ff' },
   c2c: { name: 'NVLink-C2C', color: '#9be22d' },
-  hbm: { name: 'HBM4', color: '#ffb547' },
-  d2d: { name: 'Die-to-die', color: '#ffe08a' },
+  hbm: { name: 'HBM3e', color: '#ffb547' },
+  d2d: { name: 'NV-HBI', color: '#ffe08a' },
   lpddr: { name: 'LPDDR5X', color: '#ffd166' },
-  lp5: { name: 'LPDDR5', color: '#ffd166' },
-  pcie: { name: 'PCIe Gen6', color: '#b88cff' },
+  lp5: { name: 'DDR5', color: '#ffd166' },
+  pcie: { name: 'PCIe Gen5', color: '#b88cff' },
   net: { name: 'Network', color: '#ff7ad9' },
   power: { name: 'Power', color: '#ff5a5a' },
   cool: { name: 'Coolant', color: '#4aa8ff' },
@@ -27,90 +27,92 @@ export const BUSES = {
 };
 
 const GPU_POWER = { to: ['power-stage'], scope: 'superchip', pick: 6, bus: 'power', label: 'Power from the VRM stages around it', group: 'VRM power stages' };
+const TO_GPU = ['b200-gpu'];
 
 export const CONNECTIONS = {
   // ------------------------------------------------------------------ superchip
-  'rubin-gpu': {
-    role: 'Does the AI math: tensor cores for training and inference.',
+  'b200-gpu': {
+    role: 'Does the AI math: 5th-gen tensor cores with FP4/FP6/FP8 for training and inference.',
     links: [
-      { to: 'hbm4', scope: 'self', bus: 'hbm', label: '8 HBM4 stacks · 22 TB/s', group: 'HBM4 ×8' },
-      { to: 'vera-cpu', scope: 'superchip', bus: 'c2c', label: 'Vera CPU · coherent shared memory', group: 'Vera CPU' },
-      { to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'All 4 NVLink 6 switches · 3.6 TB/s', group: 'NVLink switches' },
-      { to: 'host-conn', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'PCIe Gen6 to the host CPU tray', group: 'Host link' },
-      { to: 'nvlink-conn', scope: 'superchip', pick: 'nearest', bus: 'nvlink', label: 'Spine → 72 GPUs · 3.6 TB/s', group: 'NVLink spine' },
-      { to: ['cx9', 'midplane-conn'], scope: 'any', pick: 2, via: ['midplane-conn', 'midplane'], bus: 'net', label: '2× ConnectX-9 · 1.6 Tb/s scale-out', group: 'SuperNICs', alt: { 'midplane-conn': { label: 'Out via midplane to 2× ConnectX-9 (1.6 Tb/s)', group: 'To SuperNICs' } } },
+      { to: 'hbm3e', scope: 'self', bus: 'hbm', label: '8 HBM3e stacks · 8 TB/s', group: 'HBM3e ×8' },
+      { to: 'grace-cpu', scope: 'superchip', bus: 'c2c', label: 'Grace CPU · coherent shared memory', group: 'Grace CPU' },
+      { to: 'hgx-nvswitch', scope: 'any', bus: 'nvlink', label: 'Both NVLink switches · 9 links each, 1.8 TB/s', group: 'NVLink switches' },
+      { to: 'host-conn', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'PCIe Gen5 to the host tray', group: 'Host link' },
+      { to: 'nvlink-conn', scope: 'superchip', pick: 'nearest', bus: 'nvlink', label: 'Spine → all 72 GPUs · 1.8 TB/s', group: 'NVLink connector' },
+      { to: 'nvswitch', scope: 'any', via: ['nvlink-conn', 'nvlink-spine'], bus: 'nvlink', label: 'Through the spine to the switch trays', group: 'NVLink switch chips' },
+      { to: ['cx7', 'cable-conn'], scope: 'any', pick: 'nearest', via: ['cable-conn', 'cables'], bus: 'net', label: 'Own ConnectX-7 · 400 Gb/s scale-out', group: 'ConnectX-7', alt: { 'cable-conn': { label: 'Out by cable to its ConnectX-7 (400 Gb/s)', group: 'To NIC' } } },
       GPU_POWER,
-      { to: 'gpu-coldplate', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Heat out to the liquid loop', group: 'Cold plate' },
+      { to: ['gpu-coldplate', 'gpu-heatsink'], scope: 'any', pick: 'nearest', bus: 'cool', label: 'Heat out to the cooler', group: 'Cooler' },
     ],
   },
-  'rubin-die': {
-    role: 'One of two compute dies; the pair behaves as a single GPU.',
+  'b200-die': {
+    role: 'One of two compute dies. The pair behaves as a single GPU.',
     links: [
-      { to: 'rubin-die', scope: { ancestor: 'rubin-gpu' }, bus: 'd2d', label: 'Sibling die · NV-HBI die-to-die link', group: 'Sibling die' },
-      { to: 'hbm4', scope: { ancestor: 'rubin-gpu' }, pick: 4, bus: 'hbm', label: '4 nearest HBM4 stacks', group: 'HBM4' },
+      { to: 'b200-die', scope: { ancestor: 'b200-gpu' }, bus: 'd2d', label: 'Sibling die · NV-HBI 10 TB/s', group: 'Sibling die' },
+      { to: 'hbm3e', scope: { ancestor: 'b200-gpu' }, pick: 4, bus: 'hbm', label: '4 nearest HBM3e stacks', group: 'HBM3e' },
     ],
   },
-  hbm4: {
-    role: 'Stacked DRAM beside the die (36 GB): the GPU\'s working memory.',
-    links: [{ to: 'rubin-die', scope: { ancestor: 'rubin-gpu' }, pick: 'nearest', bus: 'hbm', label: 'Compute die · ~2.75 TB/s via interposer', group: 'Compute die' }],
+  hbm3e: {
+    role: 'Stacked DRAM beside the die (24 GB): the GPU\'s working memory.',
+    links: [{ to: 'b200-die', scope: { ancestor: 'b200-gpu' }, pick: 'nearest', bus: 'hbm', label: 'Compute die · ~1 TB/s via interposer', group: 'Compute die' }],
   },
   'gpu-interposer': {
     role: 'Silicon bridge that wires the dies and HBM together.',
     links: [
-      { to: 'rubin-die', scope: { ancestor: 'rubin-gpu' }, bus: 'd2d', label: 'Both compute dies', group: 'Dies' },
-      { to: 'hbm4', scope: { ancestor: 'rubin-gpu' }, bus: 'hbm', label: 'All 8 HBM4 stacks', group: 'HBM4 ×8' },
+      { to: 'b200-die', scope: { ancestor: 'b200-gpu' }, bus: 'd2d', label: 'Both compute dies', group: 'Dies' },
+      { to: 'hbm3e', scope: { ancestor: 'b200-gpu' }, bus: 'hbm', label: 'All 8 HBM3e stacks', group: 'HBM3e ×8' },
     ],
   },
-  'gpu-substrate': {
-    role: 'Fans thousands of die bumps out to the board.',
-    links: [{ to: 'rubin-die', scope: { ancestor: 'rubin-gpu' }, bus: 'pcie', label: 'Carries all GPU I/O + power', group: 'Dies' }],
-  },
-  'gpu-stiffener': { role: 'Keeps the huge package flat under clamping load.', links: [] },
   'gpu-lid': {
-    role: 'Heat spreader between the dies and the cold plate.',
-    links: [{ to: 'rubin-die', scope: { ancestor: 'rubin-gpu' }, bus: 'cool', label: 'Pulls heat off both dies', group: 'Dies' }],
+    role: 'Heat spreader between the dies and the cooler.',
+    links: [{ to: 'b200-die', scope: { ancestor: 'b200-gpu' }, bus: 'cool', label: 'Pulls heat off both dies', group: 'Dies' }],
   },
-  'vera-cpu': {
-    role: 'Runs the OS, data prep and orchestration; feeds both GPUs.',
+  'grace-cpu': {
+    role: 'Runs the OS, data loading and orchestration, and feeds both GPUs.',
     links: [
-      { to: 'rubin-gpu', scope: 'superchip', bus: 'c2c', label: 'Both GPUs · 1.8 TB/s coherent', group: 'Rubin GPUs' },
-      { to: 'socamm', scope: 'superchip', bus: 'lpddr', label: '8 SOCAMMs · 1.2 TB/s, up to 1.5 TB', group: 'SOCAMM ×8' },
-      { to: ['bf4', 'midplane-conn'], scope: 'any', pick: 'nearest', via: ['midplane-conn', 'midplane'], bus: 'pcie', label: 'BlueField-4 DPU · storage, NICs', group: 'BlueField-4', alt: { 'midplane-conn': { label: 'Out via midplane to BlueField-4, storage, NICs', group: 'PCIe Gen6' } } },
+      { to: 'b200-gpu', scope: 'superchip', bus: 'c2c', label: 'Both GPUs · 900 GB/s coherent', group: 'B200 GPUs' },
+      { to: 'lpddr5x', scope: 'superchip', bus: 'lpddr', label: '16× LPDDR5X · up to 480 GB', group: 'LPDDR5X ×16' },
+      { to: ['bf3', 'cable-conn'], scope: 'any', pick: 'nearest', via: ['cable-conn', 'cables'], bus: 'pcie', label: 'BlueField-3 DPU · network, storage', group: 'BlueField-3', alt: { 'cable-conn': { label: 'Out by cable to BlueField-3, drives', group: 'PCIe Gen5' } } },
       { to: 'cpu-coldplate', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Heat out to the liquid loop', group: 'Cold plate' },
     ],
   },
-  'vera-die': { alias: 'vera-cpu' },
-  'cpu-substrate': { alias: 'vera-cpu' },
-  'cpu-frame': { role: 'Spreads cold-plate clamping force around the bare die.', links: [] },
-  socamm: {
-    role: 'Swappable LPDDR5X memory module for the CPU.',
-    links: [
-      { to: 'vera-cpu', scope: 'superchip', bus: 'lpddr', label: 'LPDDR5X channels to Vera', group: 'Vera CPU' },
-      { to: 'socamm-coldplate', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cooled by memory cold plate', group: 'Cold plate' },
-    ],
+  'grace-die': { alias: 'grace-cpu' },
+  lpddr5x: {
+    role: 'Soldered LPDDR5X memory for Grace: low power, high bandwidth.',
+    links: [{ to: 'grace-cpu', scope: 'superchip', bus: 'lpddr', label: 'LPDDR5X channels to Grace', group: 'Grace CPU' }],
   },
   'nvlink-conn': {
     role: 'Blind-mates into the rack\'s copper NVLink spine.',
-    links: [{ to: 'rubin-gpu', scope: 'superchip', pick: 'nearest', bus: 'nvlink', label: 'Carries this GPU\'s NVLink 6 lanes', group: 'Rubin GPU' }],
-  },
-  'midplane-conn': {
-    role: 'Cable-free plug from the superchip into the tray midplane.',
     links: [
-      { to: 'vera-cpu', scope: 'superchip', bus: 'pcie', label: 'CPU PCIe Gen6', group: 'Vera CPU' },
-      { to: 'rubin-gpu', scope: 'superchip', bus: 'net', label: 'GPU → SuperNIC lanes', group: 'Rubin GPUs' },
-      { to: 'midplane', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'Into the PCIe Gen6 midplane', group: 'Midplane' },
+      { to: 'b200-gpu', scope: 'superchip', pick: 'nearest', bus: 'nvlink', label: 'Carries this GPU\'s 18 NVLink 5 links', group: 'B200 GPU' },
+      { to: 'nvlink-spine', scope: 'any', bus: 'nvlink', label: 'Into the cable cartridges', group: 'Spine' },
+    ],
+  },
+  'cable-conn': {
+    role: 'Plug for the internal PCIe Gen5 cables to the front I/O.',
+    links: [
+      { to: 'grace-cpu', scope: 'superchip', bus: 'pcie', label: 'Grace PCIe Gen5', group: 'Grace CPU' },
+      { to: 'b200-gpu', scope: 'superchip', pick: 'nearest', bus: 'net', label: 'GPU → NIC lanes', group: 'B200 GPU' },
+      { to: 'cables', scope: 'any', bus: 'pcie', label: 'Into the cable harness', group: 'Cables' },
+    ],
+  },
+  'power-conn': {
+    role: 'Brings 12 V from the tray power board onto the superchip.',
+    links: [
+      { to: 'vrm-inductor', scope: 'superchip', pick: 2, bus: 'power', label: 'Into the VRMs', group: 'VRMs' },
+      { to: 'pdb', scope: 'any', pick: 'nearest', bus: 'power', label: 'From the power distribution board', group: 'PDB' },
     ],
   },
   'vrm-inductor': {
     role: 'Smooths the switched current of the multiphase regulators.',
     links: [
       { to: 'drmos', scope: 'superchip', pick: 4, bus: 'power', label: 'Fed by smart power stages', group: 'Power stages' },
-      { to: ['vera-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Supplies CPU / SOC rails', group: 'Load' },
+      { to: ['grace-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Supplies CPU / SOC rails', group: 'Load' },
     ],
   },
   'power-stage': {
     role: 'Delivers high current at <1 V right next to the chip.',
-    links: [{ to: ['rubin-gpu', 'vera-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Feeds the nearest processor', group: 'Load' }],
+    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Feeds the nearest processor', group: 'Load' }],
   },
   drmos: {
     role: 'MOSFET + driver switching stage of a VRM phase.',
@@ -121,11 +123,11 @@ export const CONNECTIONS = {
   },
   'polymer-cap': {
     role: 'Bulk energy reservoir for sudden load steps.',
-    links: [{ to: ['rubin-gpu', 'vera-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Steadies the nearest supply rail', group: 'Load' }],
+    links: [{ to: ['b200-gpu', 'grace-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Steadies the nearest supply rail', group: 'Load' }],
   },
   mlcc: {
     role: 'Tiny ceramic capacitor that absorbs nanosecond current spikes.',
-    links: [{ to: ['rubin-gpu', 'vera-cpu'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Decouples the nearest chip', group: 'Load' }],
+    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Decouples the nearest chip', group: 'Load' }],
   },
   resistor: { role: 'Pull-ups, current sense and signal termination.', links: [] },
   'inductor-s': {
@@ -135,21 +137,21 @@ export const CONNECTIONS = {
   'vrm-ctrl': {
     role: 'Digital controller that orchestrates many VRM phases.',
     links: [
-      { to: 'drmos', scope: 'superchip', pick: 8, bus: 'mgmt', label: 'Drives the power stages', group: 'Power stages' },
-      { to: 'cpld', scope: 'superchip', bus: 'mgmt', label: 'Enable / telemetry (PMBus)', group: 'CPLD' },
+      { to: ['drmos', 'power-stage'], scope: 'superchip', pick: 8, bus: 'mgmt', label: 'Drives the power stages', group: 'Power stages' },
+      { to: ['cpld', 'hgx-hmc'], scope: 'superchip', pick: 'nearest', bus: 'mgmt', label: 'Enable / telemetry (PMBus)', group: 'Controller' },
     ],
   },
   cpld: {
     role: 'Board housekeeper: power sequencing, resets, telemetry.',
     links: [
       { to: 'vrm-ctrl', scope: 'superchip', bus: 'mgmt', label: 'Sequences VRM rails', group: 'VRM ctrl' },
-      { to: 'vera-cpu', scope: 'superchip', bus: 'mgmt', label: 'Reset / boot strap', group: 'Vera CPU' },
-      { to: ['bmc', 'midplane-conn'], scope: 'any', pick: 'nearest', via: ['midplane-conn'], bus: 'mgmt', label: 'Sideband to the tray BMC', group: 'BMC', alt: { 'midplane-conn': { label: 'Sideband out to the tray BMC', group: 'To BMC' } } },
+      { to: 'grace-cpu', scope: 'superchip', bus: 'mgmt', label: 'Reset / boot strap', group: 'Grace CPU' },
+      { to: ['bmc', 'cable-conn'], scope: 'any', pick: 'nearest', via: ['cable-conn', 'cables'], bus: 'mgmt', label: 'Sideband to the tray BMC', group: 'BMC', alt: { 'cable-conn': { label: 'Sideband out to the tray BMC', group: 'To BMC' } } },
     ],
   },
   flash: {
     role: 'Holds firmware the CPU boots from.',
-    links: [{ to: 'vera-cpu', scope: 'superchip', bus: 'mgmt', label: 'SPI boot', group: 'Vera CPU' }],
+    links: [{ to: 'grace-cpu', scope: 'superchip', bus: 'mgmt', label: 'SPI boot', group: 'Grace CPU' }],
   },
   i2c: { role: 'Fans out the slow management bus.', links: [{ to: 'cpld', scope: 'superchip', bus: 'mgmt', label: 'I²C to the CPLD', group: 'CPLD' }] },
   temp: { role: 'Reports board temperature.', links: [{ to: 'cpld', scope: 'superchip', bus: 'mgmt', label: 'I²C telemetry', group: 'CPLD' }] },
@@ -157,174 +159,259 @@ export const CONNECTIONS = {
   'aux-conn': { role: 'Factory debug / programming header.', links: [{ to: 'cpld', scope: 'superchip', bus: 'mgmt', label: 'JTAG / debug', group: 'CPLD' }] },
   pcb: { role: 'Dozens of copper layers carrying every link shown on hover.', links: [] },
 
-  // ------------------------------------------------------------------ tray
+  // ------------------------------------------------------------------ compute tray
   superchip: {
-    role: '1 CPU + 2 GPUs. Two per tray, 18 trays = 72 GPUs per rack.',
+    role: '1 Grace + 2 B200. Two per tray, 18 trays = 72 GPUs per rack.',
     links: [
-      { to: 'midplane', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'PCIe Gen6 midplane', group: 'Midplane' },
+      { to: 'cables', scope: 'any', bus: 'pcie', label: 'PCIe Gen5 cable harness', group: 'Cables' },
       { to: 'pdb', scope: 'any', bus: 'power', label: 'Power distribution boards', group: 'PDB' },
       { to: 'gpu-coldplate', scope: 'any', pick: 2, bus: 'cool', label: 'GPU cold plates', group: 'Cold plates' },
     ],
   },
-  cx9: {
-    role: '800 Gb/s SuperNIC linking a GPU to other racks.',
+  cx7: { alias: 'cx7-card' },
+  'cx7-card': {
+    role: '400 Gb/s NIC dedicated to one GPU, for the scale-out fabric.',
     links: [
-      { to: 'rubin-gpu', scope: 'any', pick: 'nearest', via: ['io-midplane', 'midplane'], bus: 'net', label: 'Dedicated to one GPU · PCIe Gen6', group: 'Rubin GPU' },
-      { to: 'front-panel', scope: 'any', pick: 'nearest', bus: 'net', label: 'Out to the Spectrum-X / Quantum fabric', group: 'Ports' },
+      { to: TO_GPU, scope: 'any', pick: 'nearest', via: ['cables', 'cable-conn'], bus: 'net', label: 'Its own B200 · PCIe Gen5 + GPUDirect RDMA', group: 'B200 GPU' },
+      { to: 'front-panel', scope: 'any', pick: 'nearest', bus: 'net', label: 'OSFP port to the InfiniBand / Ethernet fabric', group: 'Port' },
     ],
   },
-  'nic-module': {
-    role: 'Hot-swap carrier holding 4 ConnectX-9 SuperNICs.',
-    links: [
-      { to: 'cx9', scope: 'self', bus: 'net', label: '4× ConnectX-9', group: 'CX9 ×4' },
-      { to: 'io-midplane', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'Plugs into the I/O midplane', group: 'I/O midplane' },
-    ],
-  },
-  bf4: { alias: 'bf4-card' },
-  'bf4-card': {
+  bf3: { alias: 'bf3-card' },
+  'bf3-card': {
     role: 'DPU: runs networking, storage and security off the CPU.',
     links: [
-      { to: 'vera-cpu', scope: 'any', via: ['midplane'], bus: 'pcie', label: 'Both Vera CPUs · PCIe Gen6', group: 'Vera CPUs' },
-      { to: 'bf4-lpddr', scope: 'any', bus: 'lp5', label: 'Own LPDDR5 memory', group: 'LPDDR5' },
-      { to: 'front-cover', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'NVMe storage (E1.S)', group: 'Storage' },
-      { to: 'mgmt-module', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'Management / secure boot', group: 'Mgmt' },
+      { to: 'grace-cpu', scope: 'any', pick: 'nearest', via: ['cables', 'cable-conn'], bus: 'pcie', label: 'Its superchip\'s Grace · PCIe Gen5', group: 'Grace CPU' },
+      { to: 'bf3-ddr', scope: 'self', bus: 'lp5', label: 'Own DDR5 memory', group: 'DDR5' },
+      { to: 'front-panel', scope: 'any', pick: 'nearest', bus: 'net', label: 'QSFP112 ports · 400 Gb/s front-end network', group: 'Ports' },
     ],
   },
-  'bf4-lpddr': { role: 'Memory for BlueField\'s Grace cores.', links: [{ to: 'bf4', scope: 'any', pick: 'nearest', bus: 'lp5', label: 'BlueField-4', group: 'BlueField-4' }] },
+  'bf3-ddr': { role: 'Memory for BlueField\'s Arm cores.', links: [{ to: 'bf3', scope: 'any', pick: 'nearest', bus: 'lp5', label: 'BlueField-3', group: 'BlueField-3' }] },
+  e1s: {
+    role: 'Local NVMe storage: boot drive and scratch space.',
+    links: [{ to: 'grace-cpu', scope: 'any', via: ['cables', 'cable-conn'], bus: 'pcie', label: 'Both Grace CPUs · PCIe Gen5', group: 'Grace CPUs' }],
+  },
   'mgmt-module': {
-    role: 'Tray management: BMC, root of trust, front-panel I/O.',
+    role: 'Tray management: BMC, root of trust, front-panel management port.',
     links: [
       { to: 'bmc', scope: 'self', bus: 'mgmt', label: 'BMC', group: 'BMC' },
-      { to: 'io-midplane', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'I/O midplane', group: 'I/O midplane' },
+      { to: 'cables', scope: 'any', bus: 'mgmt', label: 'Sideband cables to the superchips', group: 'Cables' },
+      { to: 'mgmt-switch', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'Rack management network', group: 'Mgmt switch' },
     ],
   },
   bmc: {
     role: 'Out-of-band manager: power, sensors, firmware, remote console.',
     links: [
-      { to: 'cpld', scope: 'any', via: ['io-midplane', 'midplane'], bus: 'mgmt', label: 'Each superchip\'s CPLD (sideband)', group: 'CPLDs' },
+      { to: 'cpld', scope: 'any', via: ['cables'], bus: 'mgmt', label: 'Each superchip\'s CPLD (sideband)', group: 'CPLDs' },
       { to: 'pdb', scope: 'any', bus: 'mgmt', label: 'Power control (PMBus)', group: 'PDB' },
+      { to: 'fans', scope: 'any', bus: 'mgmt', label: 'Fan speed control', group: 'Fans' },
       { to: 'front-panel', scope: 'any', bus: 'mgmt', label: 'RJ45 management port', group: 'Mgmt port' },
     ],
   },
   hmc: {
     role: 'Collects GPU telemetry and attests firmware.',
-    links: [{ to: 'rubin-gpu', scope: 'any', via: ['io-midplane', 'midplane'], bus: 'mgmt', label: 'All 4 GPUs · telemetry / RAS', group: 'GPUs' }],
+    links: [{ to: 'b200-gpu', scope: 'any', via: ['cables'], bus: 'mgmt', label: 'All 4 GPUs · telemetry / RAS', group: 'GPUs' }],
+  },
+  fans: {
+    role: 'Moves air over the parts the liquid loop doesn\'t touch.',
+    links: [{ to: ['cx7-card', 'switch-mgmt', 'gpu-heatsink'], scope: 'any', bus: 'cool', label: 'Airflow over the air-cooled parts', group: 'Air-cooled parts' }],
+  },
+  cables: {
+    role: 'Internal twinax harness: GB200\'s alternative to a midplane.',
+    links: [
+      { to: 'cable-conn', scope: 'any', bus: 'pcie', label: 'Superchip front connectors', group: 'Superchip conns' },
+      { to: 'cx7-card', scope: 'any', bus: 'net', label: '4× ConnectX-7', group: 'CX-7' },
+      { to: 'bf3-card', scope: 'any', bus: 'pcie', label: '2× BlueField-3', group: 'BF-3' },
+      { to: 'e1s', scope: 'any', bus: 'pcie', label: 'E1.S drives', group: 'Drives' },
+    ],
   },
   pdb: {
-    role: 'Converts busbar power to rails for the boards.',
+    role: 'Converts busbar power to the rails the boards need.',
     links: [
-      { to: 'busbar', scope: 'any', bus: 'power', label: 'DC in from the rack busbar', group: 'Busbar' },
-      { to: ['superchip', 'gpu-module'], scope: 'any', bus: 'power', label: 'Out to both superchips', group: 'Superchips', alt: { 'gpu-module': { label: 'Out to all 8 GPU modules', group: 'GPU modules' } } },
+      { to: ['power-bus', 'busbar'], scope: 'any', pick: 'nearest', bus: 'power', label: 'DC in from the rack busbar', group: 'Busbar', alt: { busbar: { label: 'DC in from the rack busbar', group: 'Busbar' } } },
+      { to: ['power-conn', 'nvswitch', 'gpu-module'], scope: 'any', pick: 2, bus: 'power', label: 'Out to the boards', group: 'Loads', alt: { 'gpu-module': { label: 'Out to the GPU modules', group: 'GPU modules' } } },
+    ],
+  },
+  'power-bus': {
+    role: 'Copper bars under the boards: busbar clip → PDBs.',
+    links: [
+      { to: 'busbar', scope: 'any', bus: 'power', label: 'Rear busbar clip', group: 'Busbar clip' },
+      { to: 'pdb', scope: 'any', bus: 'power', label: 'Both PDBs', group: 'PDB' },
     ],
   },
   busbar: {
     role: 'The tray\'s only power input: clips onto the rack busbar.',
-    links: [{ to: 'pdb', scope: 'any', bus: 'power', label: 'Feeds the PDBs', group: 'PDB' }],
-  },
-  'io-midplane': {
-    role: 'Links front modules to the DPU and main midplane.',
     links: [
-      { to: 'nic-module', scope: 'any', bus: 'pcie', label: 'SuperNIC modules', group: 'NIC modules' },
-      { to: 'mgmt-module', scope: 'any', bus: 'pcie', label: 'Management module', group: 'Mgmt' },
-      { to: 'midplane', scope: 'any', bus: 'pcie', label: 'Main midplane', group: 'Midplane' },
-    ],
-  },
-  midplane: {
-    role: 'Cable-free PCIe Gen6 backbone of the tray.',
-    links: [
-      { to: 'midplane-conn', scope: 'any', bus: 'pcie', label: 'Both superchips', group: 'Superchip conns' },
-      { to: 'bf4-card', scope: 'any', bus: 'pcie', label: 'BlueField-4', group: 'BlueField-4' },
-      { to: 'io-midplane', scope: 'any', bus: 'pcie', label: 'Front I/O midplane', group: 'I/O midplane' },
+      { to: ['power-bus', 'pdb'], scope: 'any', bus: 'power', label: 'Feeds the tray power path', group: 'Power path' },
+      { to: 'rack-busbar', scope: 'any', bus: 'power', label: 'Rack busbar', group: 'Rack busbar' },
     ],
   },
   'gpu-coldplate': {
     role: 'Liquid flows through it, pulling heat off a GPU.',
     links: [
-      { to: 'rubin-gpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools this GPU', group: 'Rubin GPU' },
-      { to: ['gpu-manifold', 'uqd'], scope: 'any', bus: 'cool', label: 'Supply / return to the rack', group: 'Quick disconnects', alt: { 'gpu-manifold': { label: 'Supply / return via the manifold', group: 'Manifold' } } },
+      { to: 'b200-gpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools this GPU', group: 'B200 GPU' },
+      { to: 'uqd', scope: 'any', pick: 2, bus: 'cool', label: 'Supply / return to the rack', group: 'Quick disconnects' },
     ],
   },
   'cpu-coldplate': {
-    role: 'Cools the Vera CPU, in series with the GPU loop.',
+    role: 'Cools Grace, in series with the GPU loop.',
     links: [
-      { to: 'vera-cpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools Vera', group: 'Vera CPU' },
+      { to: 'grace-cpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools Grace', group: 'Grace CPU' },
       { to: 'gpu-coldplate', scope: 'any', pick: 2, bus: 'cool', label: 'Shares the GPU loop', group: 'GPU plates' },
     ],
   },
-  'socamm-coldplate': {
-    role: 'Presses a thermal pad onto four SOCAMM modules.',
-    links: [{ to: 'socamm', scope: 'any', pick: 4, bus: 'cool', label: 'Cools 4 memory modules', group: 'SOCAMM ×4' }],
-  },
   'coolant-pipes': {
-    role: 'Brazed copper loop: rack manifold → cold plates → back.',
+    role: 'Hoses: rack manifold → cold plates → back.',
     links: [
-      { to: 'uqd', scope: 'any', bus: 'cool', label: 'Rack supply / return', group: 'UQDs' },
-      { to: 'gpu-coldplate', scope: 'any', pick: 2, bus: 'cool', label: 'GPU cold plates', group: 'GPU plates' },
+      { to: 'uqd', scope: 'any', pick: 2, bus: 'cool', label: 'Rack supply / return', group: 'UQDs' },
+      { to: ['gpu-coldplate', 'switch-coldplate'], scope: 'any', pick: 2, bus: 'cool', label: 'Cold plates', group: 'Cold plates' },
       { to: 'cpu-coldplate', scope: 'any', pick: 'nearest', bus: 'cool', label: 'CPU cold plate', group: 'CPU plate' },
     ],
   },
   uqd: {
     role: 'Drip-free blind-mate coupling to the rack coolant manifold.',
-    links: [{ to: ['gpu-manifold', 'gpu-coldplate'], scope: 'any', bus: 'cool', label: 'Feeds the GPU cold plates', group: 'GPU plates', alt: { 'gpu-manifold': { label: 'Into the manifold spine', group: 'Manifold' } } }],
+    links: [
+      { to: ['gpu-coldplate', 'switch-coldplate'], scope: 'any', pick: 4, bus: 'cool', label: 'Feeds the cold plates', group: 'Cold plates' },
+      { to: 'rack-manifold', scope: 'any', bus: 'cool', label: 'Rack manifold', group: 'Manifold' },
+    ],
   },
-  // ------------------------------------------------------------------ HGX NVL8 GPU tray
+  'front-panel': {
+    role: 'Network ports, drive bays, management I/O and handles.',
+    links: [
+      { to: ['cx7-card', 'switch-mgmt'], scope: 'any', bus: 'net', label: 'OSFP ports → ConnectX-7', group: 'CX-7', alt: { 'switch-mgmt': { label: 'Management ports', group: 'Mgmt' } } },
+      { to: 'mgmt-module', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'BMC port, USB, display', group: 'Mgmt module' },
+      { to: 'fans', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Intake air for the fans', group: 'Fans' },
+    ],
+  },
+  chassis: { role: 'Steel sled; everything blind-mates at the rear.', links: [] },
+
+  // ------------------------------------------------------------------ NVLink switch tray
   nvswitch: {
+    role: 'One of 18 switch chips that make 72 GPUs one NVLink domain.',
+    links: [
+      { to: 'switch-nvlink-conn', scope: 'any', pick: 4, bus: 'nvlink', label: '72 ports · out to the spine', group: 'Backplane conns' },
+      { to: TO_GPU, scope: 'any', via: ['switch-nvlink-conn', 'nvlink-spine', 'nvlink-conn'], bus: 'nvlink', label: 'Every GPU in the rack (4 shown)', group: 'B200 GPUs' },
+      { to: 'switch-mgmt', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'Fabric manager / NVOS', group: 'Mgmt' },
+      { to: 'switch-coldplate', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Liquid cooled', group: 'Cold plate' },
+    ],
+  },
+  'switch-nvlink-conn': {
+    role: 'Mates the switch tray into a cable cartridge.',
+    links: [
+      { to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'Both switch chips', group: 'Switch chips' },
+      { to: 'nvlink-spine', scope: 'any', bus: 'nvlink', label: 'Cable cartridges', group: 'Spine' },
+    ],
+  },
+  'switch-board': {
+    role: 'Routes 144 NVLink ports from the chips to the rear.',
+    links: [{ to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'NVLink switch chips', group: 'Switch chips' }],
+  },
+  'switch-mgmt': {
+    role: 'Management CPU + BMC that configure the switch chips.',
+    links: [
+      { to: 'nvswitch', scope: 'any', bus: 'mgmt', label: 'Configures routing on both chips', group: 'Switch chips' },
+      { to: 'mgmt-switch', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'Rack management network', group: 'Mgmt switch' },
+    ],
+  },
+  'switch-cpu': { alias: 'switch-mgmt' },
+  'switch-coldplate': {
+    role: 'Cools an NVLink switch chip.',
+    links: [
+      { to: ['nvswitch', 'hgx-nvswitch'], scope: 'any', pick: 'nearest', bus: 'cool', label: 'Switch chip', group: 'Switch chip' },
+      { to: 'uqd', scope: 'any', pick: 2, bus: 'cool', label: 'Rack supply / return', group: 'UQDs' },
+    ],
+  },
+
+  // ------------------------------------------------------------------ HGX B200
+  'hgx-nvswitch': {
     role: 'Lets every GPU talk to every other at full NVLink speed.',
     links: [
-      { to: 'rubin-gpu', scope: 'any', bus: 'nvlink', label: 'All 8 GPUs · 3.6 TB/s each', group: 'Rubin GPUs' },
+      { to: 'b200-gpu', scope: 'any', bus: 'nvlink', label: 'All 8 GPUs · 9 NVLinks from each', group: 'B200 GPUs' },
       { to: 'hgx-hmc', scope: 'any', bus: 'mgmt', label: 'Fabric bring-up & telemetry', group: 'HMC' },
     ],
   },
   'host-conn': {
-    role: 'Cables to the separate CPU tray (Vera or x86 host).',
+    role: 'Cables to the separate x86 host tray.',
     links: [
-      { to: 'rubin-gpu', scope: 'any', pick: 4, bus: 'pcie', label: 'PCIe Gen6 from the nearest 4 GPUs', group: 'Rubin GPUs' },
+      { to: 'b200-gpu', scope: 'any', bus: 'pcie', label: 'PCIe Gen5 x16 to each of the 8 GPUs', group: 'B200 GPUs' },
       { to: 'hgx-hmc', scope: 'any', bus: 'mgmt', label: 'Management sideband', group: 'HMC' },
     ],
   },
   'hgx-hmc': {
     role: 'Baseboard manager: GPU telemetry, firmware, fabric bring-up.',
     links: [
-      { to: 'rubin-gpu', scope: 'any', bus: 'mgmt', label: 'All 8 GPUs', group: 'Rubin GPUs' },
-      { to: 'nvswitch', scope: 'any', bus: 'mgmt', label: 'All 4 NVLink switches', group: 'NVLink switches' },
+      { to: 'b200-gpu', scope: 'any', bus: 'mgmt', label: 'All 8 GPUs', group: 'B200 GPUs' },
+      { to: 'hgx-nvswitch', scope: 'any', bus: 'mgmt', label: 'Both NVLink switches', group: 'NVLink switches' },
       { to: 'host-conn', scope: 'any', bus: 'mgmt', label: 'To the host\'s BMC', group: 'Host link' },
     ],
   },
   'hgx-baseboard': {
-    role: 'Wires 8 GPUs to 4 NVLink switches and the host links.',
+    role: 'Wires 8 GPUs to 2 NVLink switches and the host links.',
     links: [
-      { to: 'nvswitch', scope: 'any', bus: 'nvlink', label: 'NVLink 6 switches', group: 'NVLink switches' },
+      { to: 'hgx-nvswitch', scope: 'any', bus: 'nvlink', label: 'NVLink 5 switches', group: 'NVLink switches' },
       { to: 'host-conn', scope: 'any', bus: 'pcie', label: 'Host connectors', group: 'Host link' },
     ],
   },
-  'gpu-module': { alias: 'rubin-gpu' },
-  'switch-coldplate': {
-    role: 'Cools the four NVLink 6 switch chips.',
-    links: [{ to: 'nvswitch', scope: 'any', bus: 'cool', label: 'All 4 NVLink switches', group: 'NVLink switches' }],
-  },
-  'gpu-manifold': {
-    role: 'Splits coolant into 8 parallel loops, one per GPU.',
+  'gpu-module': { alias: 'b200-gpu' },
+  'gpu-heatsink': {
+    role: 'Air cooler: vapor chamber, heat pipes and a tall fin stack.',
     links: [
-      { to: 'gpu-coldplate', scope: 'any', bus: 'cool', label: 'All 8 GPU cold plates', group: 'Cold plates' },
-      { to: 'uqd', scope: 'any', bus: 'cool', label: 'Rack supply / return', group: 'UQDs' },
+      { to: 'b200-gpu', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Cools this GPU (~1 kW)', group: 'B200 GPU' },
+      { to: 'fans', scope: 'any', bus: 'cool', label: 'Air from the fan wall', group: 'Fans' },
     ],
   },
-  'qd-coupling': {
-    role: 'Drip-free couplings so a GPU can be swapped without draining.',
+  'switch-heatsink': {
+    role: 'Air coolers for the two NVLink switch chips.',
+    links: [{ to: 'hgx-nvswitch', scope: 'any', bus: 'cool', label: 'Both switch chips', group: 'Switch chips' }],
+  },
+
+  // ------------------------------------------------------------------ NVL72 rack
+  'compute-tray': {
+    role: '2 superchips = 2 Grace + 4 B200. 18 per rack.',
     links: [
-      { to: 'gpu-manifold', scope: 'any', bus: 'cool', label: 'Manifold spine', group: 'Manifold' },
-      { to: 'gpu-coldplate', scope: 'any', bus: 'cool', label: 'Each cold plate', group: 'Cold plates' },
+      { to: 'nvlink-spine', scope: 'any', bus: 'nvlink', label: 'NVLink 5 into all 4 cable cartridges', group: 'Spine' },
+      { to: 'rack-busbar', scope: 'any', bus: 'power', label: 'DC power from the busbar', group: 'Busbar' },
+      { to: 'rack-manifold', scope: 'any', bus: 'cool', label: 'Coolant supply / return', group: 'Manifolds' },
+      { to: 'mgmt-switch', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'BMC on the management network', group: 'Mgmt switch' },
     ],
   },
-  'front-panel': {
-    role: 'Management I/O, storage bays, handles and ejectors.',
-    links: [{ to: 'mgmt-module', scope: 'any', pick: 'nearest', bus: 'mgmt', label: 'BMC port, USB, display', group: 'Mgmt module' }],
+  'switch-tray': {
+    role: '2 NVLink switch chips. 9 per rack.',
+    links: [
+      { to: 'nvlink-spine', scope: 'any', bus: 'nvlink', label: 'Every compute tray via the spine', group: 'Spine' },
+      { to: 'compute-tray', scope: 'any', via: ['nvlink-spine'], bus: 'nvlink', label: 'All 18 compute trays', group: 'Compute trays' },
+      { to: 'rack-busbar', scope: 'any', bus: 'power', label: 'DC power', group: 'Busbar' },
+    ],
   },
-  'front-cover': {
-    role: 'Vented cover over the E1.S NVMe drives.',
-    links: [{ to: 'bf4', scope: 'any', pick: 'nearest', bus: 'pcie', label: 'NVMe via BlueField-4', group: 'BlueField-4' }],
+  'nvlink-spine': {
+    role: '~5,000 copper cables: every GPU to every switch chip.',
+    links: [
+      { to: 'compute-tray', scope: 'any', bus: 'nvlink', label: '18 compute trays · 72 GPUs', group: 'Compute trays' },
+      { to: 'switch-tray', scope: 'any', bus: 'nvlink', label: '9 switch trays · 18 chips', group: 'Switch trays' },
+    ],
   },
-  chassis: { role: '1U steel sled; everything blind-mates at the rear.', links: [] },
+  'power-shelf': {
+    role: 'Six 5.5 kW supplies: facility AC → 54 V DC.',
+    links: [{ to: 'rack-busbar', scope: 'any', bus: 'power', label: 'Into the DC busbar', group: 'Busbar' }],
+  },
+  'rack-busbar': {
+    role: 'Vertical copper bus: power shelves → every tray.',
+    links: [
+      { to: 'power-shelf', scope: 'any', bus: 'power', label: '8 power shelves', group: 'Power shelves' },
+      { to: ['compute-tray', 'switch-tray'], scope: 'any', bus: 'power', label: 'Every tray (~120 kW)', group: 'Trays' },
+    ],
+  },
+  'rack-manifold': {
+    role: 'Supply / return water to every tray.',
+    links: [
+      { to: 'compute-tray', scope: 'any', bus: 'cool', label: 'All compute trays', group: 'Compute trays' },
+      { to: 'switch-tray', scope: 'any', bus: 'cool', label: 'All switch trays', group: 'Switch trays' },
+    ],
+  },
+  'mgmt-switch': {
+    role: 'Out-of-band Ethernet for every BMC and the fabric manager.',
+    links: [{ to: ['compute-tray', 'switch-tray'], scope: 'any', bus: 'mgmt', label: 'Every tray\'s BMC', group: 'Trays' }],
+  },
+  'rack-frame': { role: 'MGX rack: trays slide in from the front, mate at the rear.', links: [] },
 };
 
 export function lookup(id) {

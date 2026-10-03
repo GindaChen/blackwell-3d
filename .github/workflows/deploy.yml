@@ -1,4 +1,4 @@
-# Deploys the site to Cloudflare Pages (https://verarubin.pages.dev) on every push to main.
+# Deploys the site to Cloudflare Pages (https://blackwell3d.pages.dev) on every push to main.
 # Requires two repository secrets (Settings → Secrets and variables → Actions):
 #   CLOUDFLARE_API_TOKEN  – API token with Account → Cloudflare Pages → Edit
 #   CLOUDFLARE_ACCOUNT_ID – your Cloudflare account ID
@@ -37,7 +37,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=verarubin --branch=main --commit-hash=${{ github.sha }}
+          command: pages deploy dist --project-name=blackwell3d --branch=main --commit-hash=${{ github.sha }}
 
       - name: Skip notice
         if: env.HAS_CF_TOKEN != 'true'

@@ -324,6 +324,8 @@ export function createTour({ camera, overlay, getRoot, getView, setView, getDisp
   return {
     start, stop, frame,
     get active() { return active; },
+    /** Resolved flows and labels of the current step (for automated checks). */
+    get stats() { return { step: index + 1, flows: flows.length, labels: labels.length }; },
     /** Re-resolve flows (e.g. after a resize or an explode/toggle change). */
     refresh() { if (active) build(steps[index], { reframe: false }); },
     resize() {

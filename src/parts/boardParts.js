@@ -1,4 +1,4 @@
-// Board-level components: connectors, SOCAMM modules, inductors, standoffs, and an instancing
+// Board-level components: connectors, LPDDR5X packages, inductors, standoffs, and an instancing
 // helper used for the thousands of passives that populate the superchip.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -104,8 +104,9 @@ function arrowTexture() {
 }
 
 /**
- * NVLink 6 spine connector on the superchip's rear edge. Black LCP housing with two
- * recessed high-density contact fields and a white mating arrow (as seen in the GTC photos).
+ * NVLink 5 backplane connector on the superchip's rear edge. Black LCP housing with two
+ * recessed high-density contact fields and a white mating arrow; blind-mates into the rack's
+ * NVLink cable cartridges.
  */
 export function nvlinkConnector() {
   const M = materials();
@@ -143,85 +144,56 @@ export function nvlinkConnector() {
     clip.position.set(sx * (W / 2 - 3), 1, D / 2 + 0.3);
     g.add(clip);
   }
-  tagPart(g, 'nvlink-conn', 'NVLink 6 spine connector', 'Blind-mates into the rack\'s copper NVLink spine. Each Rubin GPU gets 3.6 TB/s of NVLink 6 bandwidth to the 36 NVLink switch chips.');
+  tagPart(g, 'nvlink-conn', 'NVLink 5 backplane connector', 'Blind-mates into the rack\'s copper NVLink spine (cable cartridges). Each B200 GPU gets 18 NVLink 5 links (1.8 TB/s) spread over the 18 switch chips in the rack.');
   explode(g, 0, 25, -30);
   return g;
 }
 
-/** Low-profile high-density board-to-board connector on the superchip's front edge (to the PCIe Gen6 midplane). */
-export function edgeConnector(width = 60) {
+/**
+ * Right-angle high-speed cable connector (MCIO-style) on the superchip's front edge. In GB200
+ * trays, twinax cables run from here to the ConnectX-7 NICs, BlueField-3 DPU and drives.
+ */
+export function cableConnector(width = 34) {
   const C = connectorMats();
   const M = materials();
   const g = new THREE.Group();
-  const D = 22, H = 5.5;
-  const sides = C.body;
-  const body = new THREE.Mesh(box(width, H, D), [sides, sides, C.edgeTop, sides, sides, sides]);
-  g.add(body);
-  // alignment blocks at both ends
-  for (const sx of [-1, 1]) {
-    const b = new THREE.Mesh(box(3.2, H + 1.6, 8), C.body);
-    b.position.set(sx * (width / 2 + 1.4), 0, -D / 2 + 5);
-    g.add(b);
-    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 3, 12), M.nickel);
-    pin.position.set(sx * (width / 2 + 1.4), H + 2.6, -D / 2 + 5);
-    g.add(pin);
-  }
-  tagPart(g, 'midplane-conn', 'Midplane connector (PCIe Gen6)', 'Cable-free board-to-board connector: the superchip plugs straight into the tray midplane, which links it to the ConnectX-9 SuperNICs, BlueField-4 DPU and storage.');
+  const D = 14, H = 7;
+  const s = C.body;
+  g.add(new THREE.Mesh(box(width, H, D), [s, s, C.edgeTop, s, s, s]));
+  // latch bar + metal shell on the mating face
+  g.add(new THREE.Mesh(box(width + 1, H + 0.6, 1.2), M.steelDark).translateZ(D / 2));
+  const latch = new THREE.Mesh(box(width * 0.6, 1.2, 5), M.nickel);
+  latch.position.set(0, H, D / 2 - 2);
+  g.add(latch);
+  tagPart(g, 'cable-conn', 'PCIe Gen5 cable connector', 'High-speed cable connector. GB200 trays use internal twinax cables to carry PCIe Gen5 from each superchip to the NICs, DPUs and drives (Vera Rubin later replaced these with a cable-free midplane).');
   explode(g, 0, 18, 20);
   return g;
 }
 
-// ----------------------------------------------------------------------------------------------
-// SOCAMM2 LPDDR5X module
-// ----------------------------------------------------------------------------------------------
-let lpddrMat = null;
-export function socammModule(index = 0) {
+/** High-current board power connector (12/48 V from the tray power distribution board). */
+export function powerConnector() {
   const M = materials();
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new RoundedBoxGeometry(14, 11, 20, 2, 1), M.lcpBlack).translateY(5.5));
+  for (const x of [-3.2, 3.2]) g.add(new THREE.Mesh(box(2.2, 0.4, 16), M.copper).translateX(x).translateY(11));
+  tagPart(g, 'power-conn', 'Board power connector', 'High-current input from the tray power distribution board. A superchip draws up to ~2.7 kW.');
+  explode(g, 0, 18, 0);
+  return g;
+}
+
+let lpddrMat = null;
+/** Soldered LPDDR5X package next to Grace (GB200 has no memory sockets). */
+export function lpddr5x(index = 0) {
   if (!lpddrMat)
     lpddrMat = new THREE.MeshStandardMaterial({
-      map: markedTop({ w: 256, h: 360, lines: ['LPDDR5X', 'D8GZQ', 'PZ9QTZ', '2532'], size: 26, rotate: Math.PI / 2, ink: 'rgba(170,170,170,0.5)' }),
+      map: markedTop({ w: 256, h: 320, lines: ['LPDDR5X', 'MT62F', '4G32D8', '2438'], size: 26, ink: 'rgba(170,170,170,0.5)' }),
       roughness: 0.62,
     });
-  const g = new THREE.Group();
-  const L = 90, W = 14;
-  // compression connector / interposer under the module
-  const cc = new THREE.Mesh(box(11.5, 1.1, 78), M.lcpBlack);
-  g.add(cc);
-  const pcb = new THREE.Mesh(box(W, 0.9, L), [M.pcbEdge, M.pcbEdge, M.socammPcb, M.socammPcb, M.pcbEdge, M.pcbEdge]);
-  pcb.position.y = 1.1;
-  g.add(pcb);
-  const top = 2.0;
-  for (const z of [-31.5, -10.5, 10.5, 31.5]) {
-    const p = lpddrPackage(12, 17);
-    p.material = lpddrMat;
-    p.position.set(0, top, z);
-    g.add(p);
-  }
-  // module PMIC + a few caps
-  const pm = new THREE.Mesh(box(3, 0.8, 3), M.moldBlack);
-  pm.position.set(-3.5, top, 41.5);
-  g.add(pm);
-  for (let i = 0; i < 6; i++) {
-    const c = new THREE.Mesh(box(1, 0.5, 0.5), M.mlcc);
-    c.position.set(1 + (i % 3) * 1.6, top, 40.5 + Math.floor(i / 3) * 1.4);
-    g.add(c);
-  }
-  // 3 captive screws: top, middle, bottom (the gold-ringed holes in the photos)
-  for (const z of [-43, 0, 43]) {
-    const washer = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.3, 24), M.goldPad);
-    washer.position.set(0, top + 0.15, z);
-    g.add(washer);
-    const head = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.7, 1.4, 24), M.screw);
-    head.position.set(0, top + 1.0, z);
-    g.add(head);
-    const slot = new THREE.Mesh(box(2.2, 0.3, 0.45), M.screwBlack);
-    slot.position.set(0, top + 1.6, z);
-    slot.rotation.y = Math.PI / 4;
-    g.add(slot);
-  }
-  tagPart(g, 'socamm', `SOCAMM2 LPDDR5X module ${index}`, 'Replaceable compression-attached LPDDR5X memory module. 8 per Vera CPU, up to 1.5 TB total at 1.2 TB/s.');
-  explode(g, 0, 30, 0);
-  return g;
+  const p = lpddrPackage(12, 15);
+  p.material = lpddrMat;
+  tagPart(p, 'lpddr5x', `LPDDR5X package ${index}`, 'Soldered LPDDR5X with ECC. Sixteen packages give Grace up to 480 GB at up to 512 GB/s.');
+  explode(p, 0, 22, 0);
+  return p;
 }
 
 // ----------------------------------------------------------------------------------------------
