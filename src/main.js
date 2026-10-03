@@ -4,7 +4,7 @@ import { createStudio } from './scene/studio.js';
 import { setLids } from './assemblies/superchip.js';
 import { setCooling, setColdPlateLift } from './assemblies/tray.js';
 import { setShell } from './assemblies/macStudio.js';
-import { VIEW_DEFS, FAMILY_DEFS, LOOKS } from './registry.js';
+import { VIEW_DEFS, FAMILY_DEFS, LOOKS, LOAD_ERRORS, loadFamilies } from './registry.js';
 import { setConnectionScope } from './annotations/connections.js';
 import { easeInOut } from './lib/util.js';
 import { createAnnotator, partOf, isShown, isDescendant } from './annotations/annotator.js';
@@ -182,7 +182,7 @@ function buildNav(name) {
   if (navFamily === fam.id) return;
   navFamily = fam.id;
   const nav = document.querySelector('.hud-views');
-  nav.replaceChildren(...viewsOf(fam.id).map((k) => {
+  nav.replaceChildren(...viewsOf(fam.id).filter((k) => views[k]).map((k) => {
     const b = document.createElement('button');
     b.dataset.view = k;
     b.innerHTML = `<span class="long">${VIEWS[k].long}</span><span class="short">${VIEWS[k].short}</span>`;
@@ -262,7 +262,8 @@ function updateHover() {
 document.fonts?.ready.then(() => { overlayDirty = true; });
 
 // ---- boot ----
-setTimeout(() => {
+setTimeout(async () => {
+  await loadFamilies();
   const params = new URLSearchParams(location.search);
   setView(views[params.get('view')] ? params.get('view') : 'superchip', { instant: true });
   if (params.get('explode')) { explodeT = +params.get('explode'); $('explode').value = explodeT; applyExplode(); }
@@ -372,5 +373,5 @@ async function saveThumb(name = current, w = 960, h = 600) {
   return (await fetch(`/__thumb/${name}`, { method: 'POST', body: blob })).text();
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture, saveThumb, views };
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture, saveThumb, views, loadErrors: LOAD_ERRORS };
 window.__app.check = createCheck(window.__app);

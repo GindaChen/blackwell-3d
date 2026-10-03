@@ -17,7 +17,5 @@
 //   { virtual: [x,y,z], label } a point outside the model (model millimetres; +z = front, -z = rear)
 //
 // pair: how many `to` targets each `from` connects to: 'all' (default) | 'nearest' | n
-import { VIEW_DEFS } from '../registry.js';
-
-// Each family's index.js supplies the tour for its views (src/families/README.md).
-export const TOURS = Object.fromEntries(Object.entries(VIEW_DEFS).filter(([, v]) => v.tour?.length).map(([k, v]) => [k, v.tour]));
+// Each family's index.js supplies the tour for its views (src/families/README.md); filled by loadFamilies().
+export { TOURS } from '../registry.js';
