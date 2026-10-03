@@ -34,3 +34,10 @@ All Apple dimensions are estimates. Apple publishes no package or board drawings
 | Mac Studio dimensions, 480 W PSU | https://www.apple.com/mac-studio/specs/ |
 | 4× Mac Studio RDMA cluster: full mesh, latency, Qwen3-235B 19.5 → 31.9 tok/s | https://jeffgeerling.com/blog/2025/15-tb-vram-on-mac-studio-rdma-over-thunderbolt-5 |
 | JACCL mesh / ring collectives over Thunderbolt | https://developer.apple.com/videos/play/wwdc2026/233/ |
+
+
+## Other families
+
+Every family added after Blackwell and Apple keeps its sources next to its code, in
+`src/families/<id>/SOURCES.md` (rubin, hopper, ampere, volta, pascal, maxwell, kepler, rtx). Each one also has a
+design note in `docs/2026-10-03-<id>-design.md`.

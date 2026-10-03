@@ -28,7 +28,12 @@ a { color: inherit; }
 .masthead h1 span { font-weight: 300; color: var(--muted); }
 .lede { margin: 0; max-width: 560px; color: #c3c8c0; font-size: 16px; }
 
-.family { padding: 40px 0 8px; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; padding: 20px 0 4px; }
+.jump a { font-size: 13px; font-weight: 600; text-decoration: none; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--text); }
+.jump a::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 2px; background: var(--accent); }
+.jump a:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+html { scroll-behavior: smooth; }
+.family { padding: 40px 0 8px; scroll-margin-top: 12px; }
 .family-head { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
 .family-head h2 { margin: 0; font-size: 22px; font-weight: 700; font-stretch: 118%; }
 .family-head h2::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 12px; border-radius: 2px; background: var(--accent); vertical-align: 2px; }

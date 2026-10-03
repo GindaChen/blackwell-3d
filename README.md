@@ -1,9 +1,22 @@
 # Blackwell 3D (Chips 3D)
 
-Interactive, physically based 3D models of AI hardware, built procedurally in three.js:
+Interactive, physically based 3D models of AI hardware, built procedurally in three.js. There are 10 families and 23 views:
 
-- **NVIDIA Blackwell:** from a single B200 package up to a full **GB200 NVL72** rack.
-- **Apple silicon:** from the **M5 Ultra** package to a Mac Studio and a 4-node Thunderbolt 5 cluster.
+| Family | `?view=` ids |
+|---|---|
+| NVIDIA Vera Rubin (the original upstream model) | `vr-superchip`, `vr-tray`, `vr-nvl8` |
+| NVIDIA Blackwell | `superchip`, `tray`, `switch`, `rack`, `hgx` |
+| NVIDIA Hopper (H100 / H200) | `h100`, `hgx-h100`, `gh200` |
+| NVIDIA Ampere | `a100`, `hgx-a100` |
+| NVIDIA Volta | `v100`, `dgx1` (hybrid cube-mesh) |
+| NVIDIA Pascal | `p100` |
+| NVIDIA Maxwell | `m40` |
+| NVIDIA Kepler | `k80` |
+| NVIDIA RTX (Blackwell desktop) | `rtx5090`, `rtxpro6000` |
+| Apple silicon | `ultra` (M5 Ultra), `studio` (Mac Studio), `cluster` (4× Mac Studio over TB5) |
+
+Each family is a self-contained plugin folder, `src/families/<id>/`. [src/families/README.md](src/families/README.md)
+describes how to add one. Run `await __app.check()` in the viewer console to verify every tour and every hover link.
 
 The site opens on a home page (`/`) with one card per model. A card opens the viewer at `viewer.html?view=<id>`.
 

@@ -9,8 +9,19 @@ const el = (tag, cls, text) => {
 };
 
 const root = document.getElementById('families');
+// jump list: one link per family
+const jump = el('nav', 'jump');
+jump.setAttribute('aria-label', 'Families');
+for (const fam of FAMILIES) {
+  const a = el('a', null, fam.name.replace(/^NVIDIA /, ''));
+  a.href = `#${fam.id}`;
+  a.style.setProperty('--accent', fam.accent);
+  jump.append(a);
+}
+root.before(jump);
 for (const fam of FAMILIES) {
   const section = el('section', 'family');
+  section.id = fam.id;
   section.style.setProperty('--accent', fam.accent);
   const head = el('div', 'family-head');
   head.append(el('h2', null, fam.name), el('p', null, fam.blurb));
