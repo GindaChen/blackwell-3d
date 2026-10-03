@@ -27,6 +27,8 @@ const thumbWriter = {
 // Two pages: the chip gallery (index.html) and the 3D viewer (viewer.html?view=...).
 export default defineConfig({
   plugins: [thumbWriter],
+  // saving a card image must not full-reload every open viewer tab
+  server: { watch: { ignored: ['**/public/thumbs/**'] } },
   build: {
     rollupOptions: {
       input: {
