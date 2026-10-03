@@ -6,11 +6,15 @@ import { buildComputeTray, setCooling, setColdPlateLift } from './assemblies/tra
 import { buildSwitchTray } from './assemblies/switchTray.js';
 import { buildHGXB200 } from './assemblies/hgx.js';
 import { buildRack, RACK_H } from './assemblies/rack.js';
+import { buildMacStudio, setShell, STUDIO } from './assemblies/macStudio.js';
+import { buildMacCluster, CLUSTER_H } from './assemblies/macCluster.js';
+import { m5UltraPackage, tileLooks } from './parts/apple.js';
 import { graceDieMaterials } from './parts/chips.js';
 import { easeInOut } from './lib/util.js';
 import { createAnnotator, partOf, isShown, isDescendant } from './annotations/annotator.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { createTour } from './tour/tour.js';
+import { VIEWS, familyOf, viewsOf } from './catalog.js';
 
 const container = document.getElementById('viewport');
 const studio = createStudio(container);
@@ -40,7 +44,6 @@ const MM = 0.1;
 
 const views = {
   superchip: {
-    title: 'GB200 Grace Blackwell Superchip',
     cams: {
       hero: { pos: [27, 33, 40], target: [0, 0, 1.5] },
       top: { pos: [0, 62, 0.01], target: [0, 0, 0] },
@@ -49,7 +52,6 @@ const views = {
     },
   },
   tray: {
-    title: 'GB200 NVL72 Compute Tray',
     cams: {
       hero: { pos: [62, 58, 88], target: [0, 0, 4] },
       top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
@@ -58,7 +60,6 @@ const views = {
     },
   },
   switch: {
-    title: 'NVLink Switch Tray',
     cams: {
       hero: { pos: [-62, 58, 88], target: [0, 0, 0] },
       top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
@@ -67,7 +68,6 @@ const views = {
     },
   },
   rack: {
-    title: 'GB200 NVL72 Rack',
     cams: {
       hero: { pos: [260, 110, 420], target: [0, 0, 20] },
       top: { pos: [0, 420, 0.01], target: [0, 0, 0] },
@@ -76,7 +76,6 @@ const views = {
     },
   },
   hgx: {
-    title: 'HGX B200 (8-GPU)',
     cams: {
       hero: { pos: [-62, 70, 92], target: [0, 3, 2] },
       top: { pos: [0, 130, 0.01], target: [0, 0, 0] },
@@ -84,6 +83,40 @@ const views = {
       close: { pos: [-14, 26, 14], target: [-6, 6, 0] },
     },
   },
+  ultra: {
+    cams: {
+      hero: { pos: [15, 19, 23], target: [0, 0, 0.5] },
+      top: { pos: [0, 38, 0.01], target: [0, 0, 0] },
+      front: { pos: [0, 8, 31], target: [0, 0, 1] },
+      close: { pos: [7, 7, -1], target: [0, 0, -6] },
+    },
+  },
+  studio: {
+    cams: {
+      hero: { pos: [26, 20, 32], target: [0, 0.5, 0] },
+      top: { pos: [0, 48, 0.01], target: [0, 0, 0] },
+      front: { pos: [0, 3, 40], target: [0, 0, 0] },
+      close: { pos: [-15, 9, -24], target: [-2, -2, -8] },
+    },
+  },
+  cluster: {
+    cams: {
+      hero: { pos: [55, 18, 92], target: [0, 0, 4] },
+      top: { pos: [0, 130, 0.01], target: [0, 0, 0] },
+      front: { pos: [0, 0, 110], target: [0, 0, 0] },
+      close: { pos: [-42, 12, -58], target: [0, 2, -10] },
+    },
+  },
+};
+
+// Per-view studio lighting: shadow frustum half-size and depth, key-light distance and floor height.
+const STAGE = {
+  default: { shadow: 60, far: 220, key: 1, floor: -12 },
+  superchip: { shadow: 30, far: 220, key: 1, floor: -12 },
+  rack: { shadow: 135, far: 900, key: 3.4, floor: -(RACK_H / 2) * MM - 0.5 },
+  ultra: { shadow: 26, far: 220, key: 1, floor: -6 },
+  studio: { shadow: 34, far: 220, key: 1, floor: -(STUDIO.H / 2) * MM - 0.05 },
+  cluster: { shadow: 48, far: 320, key: 1.6, floor: -(CLUSTER_H / 2) * MM - 0.05 },
 };
 
 const roots = {};
@@ -109,6 +142,7 @@ function model(name) {
   if (models[name]) return models[name];
   if (name === 'tray') models.tray = buildComputeTray(buildSuperchip);
   else if (name === 'switch') models.switch = buildSwitchTray();
+  else if (name === 'studio') models.studio = buildMacStudio();
   return models[name];
 }
 /** Clone a tray model as it is with the explode slider at 0. */
@@ -128,6 +162,19 @@ function build(name) {
     const sc = buildSuperchip();
     sc.position.y = 4.0;
     g.add(sc);
+  } else if (name === 'ultra') {
+    g.scale.setScalar(MM * 3); // the package is ~6 cm across: show it three times larger
+    g.add(m5UltraPackage());
+  } else if (name === 'studio') {
+    // offset a wrapper, not the shared model: the cluster clones it
+    const w = new THREE.Group();
+    w.position.y = -STUDIO.H / 2;
+    w.add(model('studio'));
+    g.add(w);
+  } else if (name === 'cluster') {
+    const c = buildMacCluster(pristineClone(model('studio')));
+    c.position.y = -CLUSTER_H / 2;
+    g.add(c);
   } else if (name === 'hgx') {
     g.add(buildHGXB200());
   } else if (name === 'rack') {
@@ -175,23 +222,25 @@ function setView(name, { instant = false } = {}) {
   const v = views[name];
   for (const [k, r] of Object.entries(roots)) r.visible = k === name;
   build(name).visible = true;
-  document.getElementById('view-title').textContent = v.title;
-  document.body.classList.toggle('view-tray', name !== 'superchip');
+  document.getElementById('view-title').textContent = VIEWS[name].title;
+  document.title = `${VIEWS[name].title} · Chips 3D`;
+  buildNav(name);
+  history.replaceState(null, '', `?view=${name}`);
+  document.querySelectorAll('[data-views]').forEach((r) => { r.hidden = !r.dataset.views.split(' ').includes(name); });
   document.body.dataset.view = name;
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   applyToggles();
   applyExplode();
   invalidate({ shadows: true });
-  // keep the shadow frustum tight around the visible model for crisp shadows; the 2.2 m rack
-  // needs the key light, shadow camera and floor pushed out
-  const rack = name === 'rack';
-  const s = name === 'superchip' ? 30 : rack ? 135 : 60;
+  // keep the shadow frustum tight around the visible model for crisp shadows; the big racks need
+  // the key light, shadow camera and floor pushed out
+  const st = STAGE[name] || STAGE.default;
   const sc = studio.key.shadow.camera;
-  sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s;
-  sc.far = rack ? 900 : 220;
+  sc.left = -st.shadow; sc.right = st.shadow; sc.top = st.shadow; sc.bottom = -st.shadow;
+  sc.far = st.far;
   sc.updateProjectionMatrix();
-  studio.key.position.set(-30, 70, 35).multiplyScalar(rack ? 3.4 : 1);
-  studio.floor.position.y = rack ? -(RACK_H / 2) * MM - 0.5 : -12;
+  studio.key.position.set(-30, 70, 35).multiplyScalar(st.key);
+  studio.floor.position.y = st.floor;
   if (instant) {
     const h = preset(v.cams.hero);
     camera.position.set(...h.pos);
@@ -204,23 +253,41 @@ const $ = (id) => document.getElementById(id);
 const smallScreen = matchMedia('(max-width: 720px), (max-height: 500px)');
 $('controls').open = !smallScreen.matches;
 // Display toggles (checkboxes in the controls panel; URL params like ?lids=1 can preset them).
-const display = { lids: false, cooling: true, floorplan: false };
+const display = { lids: false, cooling: true, floorplan: false, shell: true };
 for (const k of Object.keys(display)) $(k).addEventListener('change', (e) => { display[k] = e.target.checked; applyToggles(); });
 function applyToggles() {
   for (const r of Object.values(roots)) {
     setLids(r, display.lids);
     setCooling(r, display.cooling);
     setColdPlateLift(r, display.lids);
+    setShell(r, display.shell);
   }
   const gm = graceDieMaterials();
-  scene.traverse((o) => { if (o.name === 'grace-die') o.material = display.floorplan ? gm.floorplan : gm.marked; });
+  scene.traverse((o) => {
+    if (o.name === 'grace-die') o.material = display.floorplan ? gm.floorplan : gm.marked;
+    else if (o.userData.looks) o.material = tileLooks(o.userData.looks)[display.floorplan ? 'floorplan' : 'marked'];
+  });
   annotator.refresh();
   invalidate({ shadows: true });
 }
 $('explode').addEventListener('input', (e) => { explodeT = +e.target.value; applyExplode(); annotator.refresh(); tour.refresh(); invalidate({ shadows: true }); });
-document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
-  if (b.dataset.view !== current) setView(b.dataset.view);
-}));
+// The view switcher only lists the current family's models (the home page lists every family).
+let navFamily = null;
+function buildNav(name) {
+  const fam = familyOf(name);
+  document.documentElement.style.setProperty('--accent', fam.accent);
+  if (navFamily === fam.id) return;
+  navFamily = fam.id;
+  const nav = document.querySelector('.hud-views');
+  nav.replaceChildren(...viewsOf(fam.id).map((k) => {
+    const b = document.createElement('button');
+    b.dataset.view = k;
+    b.innerHTML = `<span class="long">${VIEWS[k].long}</span><span class="short">${VIEWS[k].short}</span>`;
+    b.addEventListener('click', () => { if (k !== current) setView(k); });
+    return b;
+  }));
+  nav.hidden = nav.children.length < 2;
+}
 
 // ---- guided tour (see src/tour) ----
 const tour = createTour({
@@ -359,6 +426,7 @@ function loop(now) {
  * Used to produce share images, e.g. `__app.capture(1200, 630)` for the Open Graph card.
  */
 function capture(width, height, supersample = 2) {
+  controls.update(); // aim the camera even if no frame has run since the last setView (hidden tab)
   const prevSize = renderer.getSize(new THREE.Vector2());
   const prevPR = renderer.getPixelRatio();
   const prevAspect = camera.aspect;
@@ -395,4 +463,10 @@ function capture(width, height, supersample = 2) {
   return out;
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture };
+/** Dev only: render the current view as the home page card image (public/thumbs/<view>.jpg). */
+async function saveThumb(name = current, w = 960, h = 600) {
+  const blob = await new Promise((r) => capture(w, h).toBlob(r, 'image/jpeg', 0.86));
+  return (await fetch(`/__thumb/${name}`, { method: 'POST', body: blob })).text();
+}
+
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture, saveThumb };

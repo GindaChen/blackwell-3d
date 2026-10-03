@@ -24,6 +24,13 @@ export const BUSES = {
   power: { name: 'Power', color: '#ff5a5a' },
   cool: { name: 'Coolant', color: '#4aa8ff' },
   mgmt: { name: 'Management', color: '#d6d6d6' },
+  // Apple
+  umem: { name: 'Unified memory', color: '#ffd166' },
+  ufusion: { name: 'UltraFusion', color: '#7fe0c8' },
+  soic: { name: 'Tile bond (SoIC)', color: '#ffe08a' },
+  tb5: { name: 'Thunderbolt 5', color: '#38d5ff' },
+  nand: { name: 'SSD', color: '#b88cff' },
+  io: { name: 'I/O', color: '#ff7ad9' },
 };
 
 const GPU_POWER = { to: ['power-stage'], scope: 'superchip', pick: 6, bus: 'power', label: 'Power from the VRM stages around it', group: 'VRM power stages' };
@@ -112,7 +119,7 @@ export const CONNECTIONS = {
   },
   'power-stage': {
     role: 'Delivers high current at <1 V right next to the chip.',
-    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Feeds the nearest processor', group: 'Load' }],
+    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch', 'm5-ultra'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Feeds the nearest processor', group: 'Load' }],
   },
   drmos: {
     role: 'MOSFET + driver switching stage of a VRM phase.',
@@ -127,7 +134,7 @@ export const CONNECTIONS = {
   },
   mlcc: {
     role: 'Tiny ceramic capacitor that absorbs nanosecond current spikes.',
-    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Decouples the nearest chip', group: 'Load' }],
+    links: [{ to: ['b200-gpu', 'grace-cpu', 'nvswitch', 'hgx-nvswitch', 'm5-ultra'], scope: 'superchip', pick: 'nearest', bus: 'power', label: 'Decouples the nearest chip', group: 'Load' }],
   },
   resistor: { role: 'Pull-ups, current sense and signal termination.', links: [] },
   'inductor-s': {
@@ -412,6 +419,155 @@ export const CONNECTIONS = {
     links: [{ to: ['compute-tray', 'switch-tray'], scope: 'any', bus: 'mgmt', label: 'Every tray\'s BMC', group: 'Trays' }],
   },
   'rack-frame': { role: 'MGX rack: trays slide in from the front, mate at the rear.', links: [] },
+
+  // ------------------------------------------------------------------ Apple M5 Ultra package
+  'm5-ultra': {
+    role: 'The whole computer on one package: CPU, GPU, Neural Engine, memory and I/O share one pool of memory.',
+    links: [
+      { to: 'apple-lpddr', scope: 'any', bus: 'umem', label: '8 LPDDR5X packages · 1.2 TB/s, up to 512 GB', group: 'Unified memory' },
+      { to: 'ultrafusion', scope: 'self', bus: 'ufusion', label: 'Joins the two M5 Max halves', group: 'UltraFusion' },
+      { to: 'ssd-module', scope: 'any', bus: 'nand', label: 'Built-in SSD controller → NAND modules', group: 'SSD modules' },
+      { to: 'tb5-port', scope: 'any', via: ['tb5-retimer'], bus: 'tb5', label: '6 Thunderbolt 5 ports · 80 Gb/s each', group: 'Thunderbolt 5' },
+      { to: 'eth-10g', scope: 'any', bus: 'io', label: '10 GbE controller', group: '10 GbE' },
+      { to: 'soc-vrm', scope: 'any', pick: 6, bus: 'power', label: 'Power from the regulators around it', group: 'Voltage regulators' },
+      { to: 'mac-heatsink', scope: 'any', bus: 'cool', label: 'Heat out to the copper heatsink', group: 'Heatsink' },
+    ],
+  },
+  'gpu-tile': {
+    role: 'Graphics and AI math, the system level cache and the memory controllers.',
+    links: [
+      { to: 'cpu-tile', scope: 'any', pick: 'nearest', bus: 'soic', label: 'Its CPU tile · hybrid bond, very short wires', group: 'CPU tile' },
+      { to: 'gpu-tile', scope: 'any', pick: 'nearest', bus: 'ufusion', label: 'The other GPU tile · UltraFusion > 4.4 TB/s', group: 'Other half' },
+      { to: 'apple-lpddr', scope: 'any', pick: 4, bus: 'umem', label: '4 nearest LPDDR5X packages · 512-bit', group: 'LPDDR5X' },
+    ],
+  },
+  'cpu-tile': {
+    role: '6 super cores and 12 performance cores, the Neural Engine and the I/O controllers.',
+    links: [
+      { to: 'gpu-tile', scope: 'any', pick: 'nearest', bus: 'soic', label: 'Its GPU tile · memory and cache live there', group: 'GPU tile' },
+      { to: 'tb5-port', scope: 'any', pick: 3, via: ['tb5-retimer'], bus: 'tb5', label: '3 Thunderbolt 5 ports per tile', group: 'Thunderbolt 5' },
+      { to: 'ssd-module', scope: 'any', pick: 'nearest', bus: 'nand', label: 'SSD controller → NAND module', group: 'SSD' },
+    ],
+  },
+  ultrafusion: {
+    role: 'Silicon bridge that makes two chips act as one.',
+    links: [{ to: 'gpu-tile', scope: 'any', bus: 'ufusion', label: 'Both GPU tiles · >4.4 TB/s', group: 'GPU tiles' }],
+  },
+  'apple-interposer': {
+    role: 'Silicon base under one M5 Max that both of its tiles bond onto.',
+    links: [{ to: ['gpu-tile', 'cpu-tile'], scope: 'any', pick: 2, bus: 'soic', label: 'Carries the tile-to-tile wiring', group: 'Tiles' }],
+  },
+  'apple-lpddr': {
+    role: 'Memory that the CPU, GPU and Neural Engine all share, with no copies between them.',
+    links: [{ to: 'gpu-tile', scope: 'any', pick: 'nearest', bus: 'umem', label: 'Memory controllers on the GPU tile', group: 'GPU tile' }],
+  },
+  'apple-lid': {
+    role: 'Spreads the heat of the four tiles.',
+    links: [{ to: ['mac-heatsink', 'gpu-tile'], scope: 'any', bus: 'cool', label: 'Into the heatsink', group: 'Heatsink', alt: { 'gpu-tile': { label: 'Draws heat from the tiles below', group: 'Tiles' } } }],
+  },
+
+  // ------------------------------------------------------------------ Mac Studio
+  'mac-board': { alias: 'm5-ultra' },
+  'soc-vrm': {
+    role: 'Steps 12 V down to the SoC\'s sub-1 V rails.',
+    links: [
+      { to: 'm5-ultra', scope: 'any', bus: 'power', label: 'Core rails into the M5 Ultra', group: 'M5 Ultra' },
+      { to: 'mac-busbar', scope: 'any', bus: 'power', label: '12 V in from the bus bar', group: 'Bus bar' },
+    ],
+  },
+  'ssd-module': {
+    role: 'Raw NAND flash; the controller is in the SoC.',
+    links: [{ to: 'm5-ultra', scope: 'any', bus: 'nand', label: 'PCIe to the SoC\'s storage controller', group: 'M5 Ultra' }],
+  },
+  'tb5-port': {
+    role: 'Thunderbolt 5: displays, storage, or another Mac in a cluster.',
+    links: [
+      { to: 'm5-ultra', scope: 'any', via: ['tb5-retimer'], bus: 'tb5', label: 'Straight to the SoC\'s TB5 controller', group: 'M5 Ultra' },
+      { to: 'tb5-cable', scope: 'any', pick: 'nearest', bus: 'tb5', label: 'Cable to another Mac', group: 'TB5 cable' },
+    ],
+  },
+  'tb5-retimer': {
+    role: 'Re-drives the 80 Gb/s Thunderbolt signal.',
+    links: [
+      { to: 'tb5-port', scope: 'any', pick: 'nearest', bus: 'tb5', label: 'Its port', group: 'Port' },
+      { to: 'm5-ultra', scope: 'any', bus: 'tb5', label: 'SoC', group: 'M5 Ultra' },
+    ],
+  },
+  'eth-10g': {
+    role: 'Turns the SoC\'s PCIe lane into 10 Gb Ethernet.',
+    links: [
+      { to: 'eth-port', scope: 'any', pick: 'nearest', bus: 'io', label: 'RJ45 port', group: 'Port' },
+      { to: 'm5-ultra', scope: 'any', bus: 'io', label: 'PCIe to the SoC', group: 'M5 Ultra' },
+    ],
+  },
+  'eth-port': {
+    role: '10 Gb Ethernet.',
+    links: [
+      { to: 'eth-10g', scope: 'any', pick: 'nearest', bus: 'io', label: 'Ethernet controller', group: 'Controller' },
+      { to: 'eth-switch', scope: 'any', via: ['eth-cable'], bus: 'net', label: 'To the 10 GbE switch', group: 'Switch' },
+    ],
+  },
+  'usb-port': { role: 'USB-A, 5 Gb/s.', links: [{ to: 'm5-ultra', scope: 'any', bus: 'io', label: 'SoC USB controller', group: 'M5 Ultra' }] },
+  'hdmi-port': { role: 'Display output.', links: [{ to: 'm5-ultra', scope: 'any', bus: 'io', label: 'Display engine in the SoC', group: 'M5 Ultra' }] },
+  'audio-port': { role: 'Headphones.', links: [] },
+  'sd-slot': { role: 'SD card reader.', links: [{ to: 'm5-ultra', scope: 'any', via: ['front-io'], bus: 'io', label: 'Through the front I/O board', group: 'M5 Ultra' }] },
+  'front-io': {
+    role: 'Front ports, cabled to the logic board.',
+    links: [{ to: 'm5-ultra', scope: 'any', bus: 'tb5', label: 'Flex cable to the logic board', group: 'M5 Ultra' }],
+  },
+  'n1-chip': { role: 'Apple\'s own wireless chip.', links: [{ to: 'm5-ultra', scope: 'any', bus: 'io', label: 'PCIe to the SoC', group: 'M5 Ultra' }] },
+  pmic: { role: 'Power sequencing and supervision.', links: [{ to: 'soc-vrm', scope: 'any', pick: 4, bus: 'mgmt', label: 'Controls the regulators', group: 'Regulators' }] },
+  psu: {
+    role: 'Mains AC → 12 V DC, 480 W, built in.',
+    links: [
+      { to: 'ac-inlet', scope: 'any', pick: 'nearest', bus: 'power', label: 'AC in', group: 'AC inlet' },
+      { to: 'mac-busbar', scope: 'any', pick: 'nearest', bus: 'power', label: '12 V out over the bus bar', group: 'Bus bar' },
+      { to: 'blower', scope: 'any', pick: 2, bus: 'cool', label: 'Cooled by the same airflow', group: 'Fans' },
+    ],
+  },
+  'ac-inlet': { role: 'Mains power in.', links: [{ to: 'psu', scope: 'any', pick: 'nearest', bus: 'power', label: 'To the PSU', group: 'PSU' }] },
+  'mac-busbar': {
+    role: 'Copper bar carrying 12 V to the board.',
+    links: [
+      { to: 'psu', scope: 'any', pick: 'nearest', bus: 'power', label: 'From the PSU', group: 'PSU' },
+      { to: 'soc-vrm', scope: 'any', pick: 4, bus: 'power', label: 'To the SoC regulators', group: 'Regulators' },
+    ],
+  },
+  blower: {
+    role: 'Moves air from the foot, through the heatsink, out the back.',
+    links: [
+      { to: 'mac-foot', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Air in through the foot', group: 'Intake' },
+      { to: 'mac-heatsink', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Air out through the fins', group: 'Heatsink' },
+    ],
+  },
+  'mac-heatsink': {
+    role: 'Copper base + fins over the SoC.',
+    links: [
+      { to: 'm5-ultra', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Heat from the M5 Ultra', group: 'M5 Ultra' },
+      { to: 'blower', scope: 'any', pick: 2, bus: 'cool', label: 'Air from both blowers', group: 'Blowers' },
+    ],
+  },
+  'mac-foot': { role: 'Cool air enters around the base.', links: [{ to: 'blower', scope: 'any', pick: 2, bus: 'cool', label: 'Up into the blowers', group: 'Blowers' }] },
+  'mac-shell': { role: 'Aluminium unibody; exhaust grille on the back.', links: [{ to: 'mac-heatsink', scope: 'any', pick: 'nearest', bus: 'cool', label: 'Hot air leaves through the rear grille', group: 'Heatsink' }] },
+
+  // ------------------------------------------------------------------ Mac Studio cluster
+  'mac-studio': {
+    role: 'One cluster node: M5 Ultra, up to 512 GB of unified memory.',
+    links: [
+      { to: 'mac-studio', scope: 'any', via: ['tb5-cable'], bus: 'tb5', label: 'The other 3 Macs · TB5 + RDMA, full mesh', group: 'Peers' },
+      { to: 'eth-switch', scope: 'any', via: ['eth-cable'], bus: 'net', label: '10 GbE switch', group: 'Switch' },
+      { to: 'power-strip', scope: 'any', via: ['ac-cord'], bus: 'power', label: 'Mains power', group: 'Power strip' },
+    ],
+  },
+  'tb5-cable': {
+    role: 'A direct Mac-to-Mac link: there is no Thunderbolt switch.',
+    links: [{ to: 'mac-studio', scope: 'any', pick: 2, bus: 'tb5', label: 'The two Macs it joins', group: 'Ends' }],
+  },
+  'eth-switch': { role: 'Ordinary Ethernet for logins and storage.', links: [{ to: 'mac-studio', scope: 'any', via: ['eth-cable'], bus: 'net', label: 'All 4 Macs', group: 'Macs' }] },
+  'eth-cable': { role: 'Cat 6A, 10 Gb/s.', links: [{ to: 'eth-switch', scope: 'any', bus: 'net', label: 'Switch', group: 'Switch' }] },
+  'ac-cord': { role: 'Mains power cord.', links: [{ to: 'power-strip', scope: 'any', bus: 'power', label: 'Power strip', group: 'Strip' }] },
+  'power-strip': { role: 'Mains power for the four Macs.', links: [{ to: 'mac-studio', scope: 'any', via: ['ac-cord'], bus: 'power', label: 'All 4 Macs', group: 'Macs' }] },
+  'mini-rack': { role: '10-inch open frame, one shelf per Mac.', links: [] },
 };
 
 export function lookup(id) {

@@ -35,12 +35,14 @@ html, body {
 
 .hud { position: fixed; z-index: 2; }
 .hud-title { top: 22px; left: 26px; pointer-events: none; display: grid; justify-items: start; gap: 10px; max-width: min(520px, calc(100vw - 32px)); }
+.home-link { pointer-events: auto; color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; font-stretch: var(--semi-wide); }
+.home-link:hover { color: var(--text); }
 .hud-title h1 { margin: 0; font-size: 26px; font-weight: 700; font-stretch: var(--wide); letter-spacing: 0.01em; }
 
 .hud-views { top: 22px; right: 22px; display: flex; gap: 4px; background: var(--panel); border-radius: 12px; padding: 4px; backdrop-filter: blur(10px); box-shadow: var(--shadow); }
 button { touch-action: manipulation; font: inherit; color: var(--text); background: transparent; border: 0; min-height: var(--tap); padding: 0 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; font-stretch: var(--semi-wide); letter-spacing: 0.01em; display: inline-flex; align-items: center; justify-content: center; }
 button:hover { background: rgba(255, 255, 255, 0.06); }
-button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
+button.active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: color-mix(in srgb, var(--accent) 45%, white); }
 
 /* Desktop: a full-width bar along the bottom edge. */
 .hud-controls { left: 22px; right: 22px; bottom: 22px; background: var(--panel); border-radius: 14px; padding: 6px 8px 6px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow); font-size: 13px; }
@@ -56,7 +58,6 @@ button.active { background: rgba(118, 185, 0, 0.18); color: #c9f27d; }
 .row input[type='range']::-moz-range-thumb { width: var(--thumb); height: var(--thumb); border-radius: 50%; background: var(--accent); border: 0; }
 .row input[type='checkbox'] { accent-color: var(--accent); width: var(--check); height: var(--check); margin: 0; flex: none; }
 
-body:not(.view-tray) .tray-only { display: none; }
 .hud-views .short { display: none; }
 
 .hud-svg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; overflow: visible; }
@@ -76,7 +77,7 @@ body:not(.view-tray) .tray-only { display: none; }
 
 .mode-toggle { pointer-events: auto; display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(10px); box-shadow: var(--shadow); }
 .mode-toggle button { padding: 0 16px; font-size: 14px; color: var(--muted); }
-.mode-toggle button.active { background: rgba(118, 185, 0, 0.2); color: #d8f5a2; }
+.mode-toggle button.active { background: color-mix(in srgb, var(--accent) 20%, transparent); color: color-mix(in srgb, var(--accent) 35%, white); }
 body.touring .hud-views, body.touring .hud-controls { display: none; }
 
 .tour-panel { position: fixed; z-index: 4; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(560px, calc(100vw - 32px));
@@ -92,7 +93,7 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
 .tp-legend i { display: inline-block; width: 14px; height: 2px; margin-right: 6px; vertical-align: middle; border-radius: 1px; }
 .tp-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .tp-nav .tp-prev, .tp-nav .tp-next { background: rgba(255, 255, 255, 0.06); min-width: 104px; }
-.tp-nav .tp-next { background: rgba(118, 185, 0, 0.2); color: #d8f5a2; }
+.tp-nav .tp-next { background: color-mix(in srgb, var(--accent) 20%, transparent); color: color-mix(in srgb, var(--accent) 35%, white); }
 .tp-nav button:disabled { opacity: 0.35; cursor: default; }
 .tp-dots { display: flex; gap: 0; flex-wrap: wrap; justify-content: center; }
 .tp-dot { width: 20px; min-height: 28px; padding: 0; background: transparent; }
@@ -156,3 +157,5 @@ body.touring .hud-views, body.touring .hud-controls { display: none; }
   button, .row { font-size: 15px; }
   .tp-dot { width: 24px; min-height: 40px; }
 }
+.hud-views[hidden] { display: none; }
+.row[hidden] { display: none; }

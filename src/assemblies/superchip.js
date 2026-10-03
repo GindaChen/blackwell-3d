@@ -32,7 +32,7 @@ const HOLES = [
 ];
 
 /** Occupancy grid to keep procedurally placed parts from colliding. */
-class Placer {
+export class Placer {
   constructor(W, L, cell = 0.25) {
     this.W = W; this.L = L; this.cell = cell;
     this.nx = Math.ceil(W / cell); this.nz = Math.ceil(L / cell);

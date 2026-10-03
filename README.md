@@ -1,7 +1,11 @@
-# Blackwell 3D
+# Blackwell 3D (Chips 3D)
 
-An interactive, physically based 3D model of NVIDIA **Blackwell** hardware, from a single B200 package up to a full
-**GB200 NVL72** rack. Everything is built procedurally in three.js.
+Interactive, physically based 3D models of AI hardware, built procedurally in three.js:
+
+- **NVIDIA Blackwell:** from a single B200 package up to a full **GB200 NVL72** rack.
+- **Apple silicon:** from the **M5 Ultra** package to a Mac Studio and a 4-node Thunderbolt 5 cluster.
+
+The site opens on a home page (`/`) with one card per model. A card opens the viewer at `viewer.html?view=<id>`.
 
 This is a fork of [bddicken/nvidia](https://github.com/bddicken/nvidia) (the Vera Rubin 3D model). It keeps that
 project's rendering, hover-tracing and guided-tour engine, and replaces all of the hardware with Blackwell parts.
@@ -23,8 +27,18 @@ and press Esc or click empty space to release it.
 | **NVL72 rack** | `rack` | 18 compute trays, 9 switch trays, 8 power shelves, the copper NVLink spine (4 cable cartridges), the DC busbar and the coolant manifolds. The explode slider pulls out one compute tray and one switch tray at full detail. Hover a B200 in the open tray to trace its NVLink path through the spine to the switch chips. |
 | **HGX B200** | `hgx` | Air-cooled 8-GPU baseboard: 8 SXM modules with tall vapor-chamber heatsinks, 2 NVLink switch chips in the centre, 8 PCIe Gen5 host connectors and a fan wall. |
 
-Display options: explode, heat-spreader lids, Grace die floorplan, and coolers (cold plates and heatsinks).
-URL parameters link to a state, for example `?view=rack&explode=1&cooling=0&cam=hero`.
+### Apple silicon
+
+| View | `?view=` | What's in it |
+|---|---|---|
+| **M5 Ultra** | `ultra` | The package: two M5 Max chips joined by the UltraFusion bridge. Each M5 Max is a CPU tile (6 super + 12 performance cores, Neural Engine, TB5/display/SSD controllers) and a GPU tile (40 cores, SLC, memory controllers), hybrid-bonded onto a silicon interposer. 8 LPDDR5X packages (1024-bit, 1.2 TB/s, up to 512 GB) and a lid. |
+| **Mac Studio** | `studio` | The 197 mm unibody (lift it with the explode slider or the enclosure toggle), logic board, SoC voltage regulators, 2 NAND-only SSD modules, copper heatsink, two blowers, the 480 W PSU and bus bar, 6× Thunderbolt 5, 10 GbE, HDMI, USB-A and SDXC. |
+| **4-node cluster** | `cluster` | Four Mac Studios in a 10" mini rack, wired as a Thunderbolt 5 full mesh (6 cables, RDMA over Thunderbolt in macOS 26.2+), plus a 10 GbE switch and a power strip. The top Mac slides out at full detail. |
+
+Display options: explode, heat-spreader lids, die floorplans (Grace and Apple tiles), coolers (cold plates,
+heatsinks, fans) and the Mac Studio enclosure. Each view shows only the options that apply to it.
+URL parameters link to a state, for example `viewer.html?view=rack&explode=1&cooling=0&cam=hero`.
+Old links such as `/?view=rack` redirect to the viewer.
 
 ### What's different from the Vera Rubin model
 
@@ -48,7 +62,8 @@ npm run dev
 
 As upstream, everything is generated in code, with no downloaded meshes or image textures. Dimensions are
 estimates scaled from public photos and specs (see [reference/SOURCES.md](reference/SOURCES.md)). The design
-notes are in [docs/2026-10-03-blackwell-design.md](docs/2026-10-03-blackwell-design.md).
+notes are in [docs/2026-10-03-blackwell-design.md](docs/2026-10-03-blackwell-design.md) and
+[docs/2026-10-03-apple-design.md](docs/2026-10-03-apple-design.md).
 
 | Area | File |
 |---|---|
@@ -61,6 +76,9 @@ notes are in [docs/2026-10-03-blackwell-design.md](docs/2026-10-03-blackwell-des
 | Connectors, LPDDR5X, inductors, instancing helper | `src/parts/boardParts.js` |
 | PCB texture set: mask, traces, vias, ENIG pads, silkscreen, normal map | `src/textures/pcb.js` |
 | Die floorplans (Blackwell, Grace), lid marking, substrates | `src/textures/silicon.js` |
+| Apple M5 Ultra package / tile floorplans | `src/parts/apple.js`, `src/textures/apple.js` |
+| Mac Studio, Mac Studio cluster | `src/assemblies/macStudio.js`, `src/assemblies/macCluster.js` |
+| Home page and the catalog of families and views | `index.html`, `src/home/`, `src/catalog.js` |
 | Connection graph (what each part talks to) | `src/annotations/connections.js` |
 | Guided tours | `src/tour/tours/*.js` |
 
@@ -69,6 +87,11 @@ are clones of the tray-view models, with their inner explode offsets stripped so
 
 `src/textures/pcb.js` also fixes a mirror in upstream's PCB mapping: silkscreen and pads used to land at the
 opposite end of the board from the parts that own them.
+
+### Home page card images
+
+`public/thumbs/<view>.jpg` are renders of each view. To refresh one, run the dev server, open the view, set it up
+the way you want and run `__app.saveThumb()` in the console. A dev-only Vite middleware writes the file.
 
 ## Deploying
 
