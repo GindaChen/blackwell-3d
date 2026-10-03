@@ -155,6 +155,7 @@ export function graceCPU() {
   g.add(uf);
   const die = new THREE.Mesh(box(28, 0.8, 31), graceDieMaterials().marked);
   die.name = 'grace-die';
+  die.userData.looks = 'grace';
   die.position.y = 1.5;
   tagPart(die, 'grace-die', 'Grace CPU die', '72 Arm Neoverse V2 cores on NVIDIA\'s Scalable Coherency Fabric, 114 MB L3. 900 GB/s NVLink-C2C to the two B200 GPUs.');
   g.add(die);

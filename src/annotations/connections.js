@@ -12,7 +12,7 @@
 //   group  : optional label for the bracket shown on the target(s)
 //   alt    : { [fallbackId]: { label, group } } overrides when a fallback id from `to` was used
 
-export const BUSES = {
+const BASE_BUSES = {
   nvlink: { name: 'NVLink 5', color: '#38d5ff' },
   c2c: { name: 'NVLink-C2C', color: '#9be22d' },
   hbm: { name: 'HBM3e', color: '#ffb547' },
@@ -570,9 +570,21 @@ export const CONNECTIONS = {
   'mini-rack': { role: '10-inch open frame, one shelf per Mac.', links: [] },
 };
 
+/** The live bus legend: the base set plus the overrides of the family on screen. */
+export const BUSES = { ...BASE_BUSES };
+
+// While a family is on screen, its own connection table is consulted before the global one.
+let scoped = null;
+export function setConnectionScope({ connections = null, buses = null } = {}) {
+  scoped = connections;
+  for (const k of Object.keys(BUSES)) delete BUSES[k];
+  Object.assign(BUSES, BASE_BUSES, buses || {});
+}
+
+const entry = (id) => scoped?.[id] ?? CONNECTIONS[id];
 export function lookup(id) {
-  let e = CONNECTIONS[id];
+  let e = entry(id);
   let guard = 0;
-  while (e && e.alias && guard++ < 4) e = CONNECTIONS[e.alias];
+  while (e && e.alias && guard++ < 4) e = entry(e.alias);
   return e || null;
 }

@@ -48,7 +48,7 @@ function mats() {
 export const tileLooks = (key) => mats()[key];
 function tile(w, d, key, id, label, info) {
   const m = new THREE.Mesh(box(w, 0.75, d), mats()[key].marked);
-  m.userData.looks = key;
+  m.userData.looks = `apple-${key}`;
   tagPart(m, id, label, info);
   return m;
 }

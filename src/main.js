@@ -1,19 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStudio } from './scene/studio.js';
-import { buildSuperchip, setLids } from './assemblies/superchip.js';
-import { buildComputeTray, setCooling, setColdPlateLift } from './assemblies/tray.js';
-import { buildSwitchTray } from './assemblies/switchTray.js';
-import { buildHGXB200 } from './assemblies/hgx.js';
-import { buildRack, RACK_H } from './assemblies/rack.js';
-import { buildMacStudio, setShell, STUDIO } from './assemblies/macStudio.js';
-import { buildMacCluster, CLUSTER_H } from './assemblies/macCluster.js';
-import { m5UltraPackage, tileLooks } from './parts/apple.js';
-import { graceDieMaterials } from './parts/chips.js';
+import { setLids } from './assemblies/superchip.js';
+import { setCooling, setColdPlateLift } from './assemblies/tray.js';
+import { setShell } from './assemblies/macStudio.js';
+import { VIEW_DEFS, FAMILY_DEFS, LOOKS } from './registry.js';
+import { setConnectionScope } from './annotations/connections.js';
 import { easeInOut } from './lib/util.js';
 import { createAnnotator, partOf, isShown, isDescendant } from './annotations/annotator.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { createTour } from './tour/tour.js';
+import { createCheck } from './dev/check.js';
 import { VIEWS, familyOf, viewsOf } from './catalog.js';
 
 const container = document.getElementById('viewport');
@@ -42,82 +39,9 @@ controls.maxDistance = 800;
 // mm -> scene units (cm)
 const MM = 0.1;
 
-const views = {
-  superchip: {
-    cams: {
-      hero: { pos: [27, 33, 40], target: [0, 0, 1.5] },
-      top: { pos: [0, 62, 0.01], target: [0, 0, 0] },
-      front: { pos: [0, 14, 52], target: [0, 0, 2] },
-      close: { pos: [9, 9, -2], target: [3, 0, -9] },
-    },
-  },
-  tray: {
-    cams: {
-      hero: { pos: [62, 58, 88], target: [0, 0, 4] },
-      top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
-      front: { pos: [-12, 16, 92], target: [0, 2, 20] },
-      close: { pos: [18, 20, -12], target: [10, 2, -26] },
-    },
-  },
-  switch: {
-    cams: {
-      hero: { pos: [-62, 58, 88], target: [0, 0, 0] },
-      top: { pos: [0, 125, 0.01], target: [0, 0, 0] },
-      front: { pos: [12, 16, 92], target: [0, 2, 20] },
-      close: { pos: [-20, 22, 2], target: [-10, 1, -7] },
-    },
-  },
-  rack: {
-    cams: {
-      hero: { pos: [260, 110, 420], target: [0, 0, 20] },
-      top: { pos: [0, 420, 0.01], target: [0, 0, 0] },
-      front: { pos: [0, 10, 400], target: [0, 0, 0] },
-      close: { pos: [-150, 40, -190], target: [0, 0, -40] },
-    },
-  },
-  hgx: {
-    cams: {
-      hero: { pos: [-62, 70, 92], target: [0, 3, 2] },
-      top: { pos: [0, 130, 0.01], target: [0, 0, 0] },
-      front: { pos: [10, 20, 95], target: [0, 4, 20] },
-      close: { pos: [-14, 26, 14], target: [-6, 6, 0] },
-    },
-  },
-  ultra: {
-    cams: {
-      hero: { pos: [15, 19, 23], target: [0, 0, 0.5] },
-      top: { pos: [0, 38, 0.01], target: [0, 0, 0] },
-      front: { pos: [0, 8, 31], target: [0, 0, 1] },
-      close: { pos: [7, 7, -1], target: [0, 0, -6] },
-    },
-  },
-  studio: {
-    cams: {
-      hero: { pos: [26, 20, 32], target: [0, 0.5, 0] },
-      top: { pos: [0, 48, 0.01], target: [0, 0, 0] },
-      front: { pos: [0, 3, 40], target: [0, 0, 0] },
-      close: { pos: [-15, 9, -24], target: [-2, -2, -8] },
-    },
-  },
-  cluster: {
-    cams: {
-      hero: { pos: [55, 18, 92], target: [0, 0, 4] },
-      top: { pos: [0, 130, 0.01], target: [0, 0, 0] },
-      front: { pos: [0, 0, 110], target: [0, 0, 0] },
-      close: { pos: [-42, 12, -58], target: [0, 2, -10] },
-    },
-  },
-};
-
-// Per-view studio lighting: shadow frustum half-size and depth, key-light distance and floor height.
-const STAGE = {
-  default: { shadow: 60, far: 220, key: 1, floor: -12 },
-  superchip: { shadow: 30, far: 220, key: 1, floor: -12 },
-  rack: { shadow: 135, far: 900, key: 3.4, floor: -(RACK_H / 2) * MM - 0.5 },
-  ultra: { shadow: 26, far: 220, key: 1, floor: -6 },
-  studio: { shadow: 34, far: 220, key: 1, floor: -(STUDIO.H / 2) * MM - 0.05 },
-  cluster: { shadow: 48, far: 320, key: 1.6, floor: -(CLUSTER_H / 2) * MM - 0.05 },
-};
+// Every view comes from a family module (src/families/<id>/index.js, contract in src/families/README.md).
+const views = VIEW_DEFS;
+const STAGE_DEFAULT = { shadow: 60, far: 220, key: 1, floor: -12 };
 
 const roots = {};
 let current = null;
@@ -136,16 +60,15 @@ function applyExplode() {
   for (const [o, { base, off }] of explodables) o.position.copy(base).addScaledVector(off, t);
 }
 
-// Assemblies shared between views (the rack's open drawers are clones of the tray views).
+// Raw models, cached per view: a view's model can be cloned into another view (ctx.model), e.g. the
+// rack's open drawers are clones of the tray views.
 const models = {};
+const ctx = { model: (name) => pristineClone(model(name)) };
 function model(name) {
-  if (models[name]) return models[name];
-  if (name === 'tray') models.tray = buildComputeTray(buildSuperchip);
-  else if (name === 'switch') models.switch = buildSwitchTray();
-  else if (name === 'studio') models.studio = buildMacStudio();
+  if (!models[name]) models[name] = views[name].build(ctx);
   return models[name];
 }
-/** Clone a tray model as it is with the explode slider at 0. */
+/** Clone a model as it is with the explode slider at 0. */
 function pristineClone(m) {
   const moved = [];
   for (const [o, { base }] of explodables) if (isDescendant(o, m)) { moved.push([o, o.position.clone()]); o.position.copy(base); }
@@ -156,34 +79,14 @@ function pristineClone(m) {
 
 function build(name) {
   if (roots[name]) return roots[name];
+  const v = views[name];
   const g = new THREE.Group();
-  g.scale.setScalar(MM);
-  if (name === 'superchip') {
-    const sc = buildSuperchip();
-    sc.position.y = 4.0;
-    g.add(sc);
-  } else if (name === 'ultra') {
-    g.scale.setScalar(MM * 3); // the package is ~6 cm across: show it three times larger
-    g.add(m5UltraPackage());
-  } else if (name === 'studio') {
-    // offset a wrapper, not the shared model: the cluster clones it
-    const w = new THREE.Group();
-    w.position.y = -STUDIO.H / 2;
-    w.add(model('studio'));
-    g.add(w);
-  } else if (name === 'cluster') {
-    const c = buildMacCluster(pristineClone(model('studio')));
-    c.position.y = -CLUSTER_H / 2;
-    g.add(c);
-  } else if (name === 'hgx') {
-    g.add(buildHGXB200());
-  } else if (name === 'rack') {
-    const rack = buildRack({ computeTray: pristineClone(model('tray')), switchTray: pristineClone(model('switch')) });
-    rack.position.y = -RACK_H / 2;
-    g.add(rack);
-  } else {
-    g.add(model(name));
-  }
+  g.scale.setScalar(v.scale ?? MM);
+  // offset a wrapper, never the shared model (other views may clone it)
+  const w = new THREE.Group();
+  w.position.set(...(v.offset || [0, 0, 0]));
+  w.add(model(name));
+  g.add(w);
   registerExplodables(g);
   scene.add(g);
   roots[name] = g;
@@ -226,15 +129,16 @@ function setView(name, { instant = false } = {}) {
   document.title = `${VIEWS[name].title} · Chips 3D`;
   buildNav(name);
   history.replaceState(null, '', `?view=${name}`);
-  document.querySelectorAll('[data-views]').forEach((r) => { r.hidden = !r.dataset.views.split(' ').includes(name); });
+  document.querySelectorAll('[data-toggle]').forEach((r) => { r.hidden = !(v.toggles || []).includes(r.dataset.toggle); });
+  setConnectionScope(FAMILY_DEFS[v.family]);
   document.body.dataset.view = name;
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   applyToggles();
   applyExplode();
   invalidate({ shadows: true });
-  // keep the shadow frustum tight around the visible model for crisp shadows; the big racks need
-  // the key light, shadow camera and floor pushed out
-  const st = STAGE[name] || STAGE.default;
+  // keep the shadow frustum tight around the visible model for crisp shadows; big models (racks)
+  // push the key light, shadow camera and floor out
+  const st = { ...STAGE_DEFAULT, ...v.stage };
   const sc = studio.key.shadow.camera;
   sc.left = -st.shadow; sc.right = st.shadow; sc.top = st.shadow; sc.bottom = -st.shadow;
   sc.far = st.far;
@@ -262,10 +166,9 @@ function applyToggles() {
     setColdPlateLift(r, display.lids);
     setShell(r, display.shell);
   }
-  const gm = graceDieMaterials();
   scene.traverse((o) => {
-    if (o.name === 'grace-die') o.material = display.floorplan ? gm.floorplan : gm.marked;
-    else if (o.userData.looks) o.material = tileLooks(o.userData.looks)[display.floorplan ? 'floorplan' : 'marked'];
+    const look = o.userData.looks && LOOKS[o.userData.looks];
+    if (look) o.material = look()[display.floorplan ? 'floorplan' : 'marked'];
   });
   annotator.refresh();
   invalidate({ shadows: true });
@@ -469,4 +372,5 @@ async function saveThumb(name = current, w = 960, h = 600) {
   return (await fetch(`/__thumb/${name}`, { method: 'POST', body: blob })).text();
 }
 
-window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture, saveThumb };
+window.__app = { scene, camera, controls, renderer, setView, flyTo, invalidate, annotator, tour, roots: () => roots[current], capture, saveThumb, views };
+window.__app.check = createCheck(window.__app);

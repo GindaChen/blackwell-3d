@@ -17,20 +17,7 @@
 //   { virtual: [x,y,z], label } a point outside the model (model millimetres; +z = front, -z = rear)
 //
 // pair: how many `to` targets each `from` connects to: 'all' (default) | 'nearest' | n
-import { TRAY_STEPS } from './tours/tray.js';
-import { SUPERCHIP_STEPS } from './tours/superchip.js';
-import { SWITCH_STEPS } from './tours/switch.js';
-import { RACK_STEPS } from './tours/rack.js';
-import { HGX_STEPS } from './tours/hgx.js';
-import { ULTRA_STEPS, STUDIO_STEPS, CLUSTER_STEPS } from './tours/apple.js';
+import { VIEW_DEFS } from '../registry.js';
 
-export const TOURS = {
-  superchip: SUPERCHIP_STEPS,
-  tray: TRAY_STEPS,
-  switch: SWITCH_STEPS,
-  rack: RACK_STEPS,
-  hgx: HGX_STEPS,
-  ultra: ULTRA_STEPS,
-  studio: STUDIO_STEPS,
-  cluster: CLUSTER_STEPS,
-};
+// Each family's index.js supplies the tour for its views (src/families/README.md).
+export const TOURS = Object.fromEntries(Object.entries(VIEW_DEFS).filter(([, v]) => v.tour?.length).map(([k, v]) => [k, v.tour]));
