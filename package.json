@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "cf:dev": "vite build && wrangler pages dev",
-    "deploy": "vite build && wrangler pages deploy dist --project-name blackwell3d --branch main"
+    "deploy": "vite build && wrangler pages deploy dist --project-name blackwell3d --branch main",
+    "deploy:modal": "vite build && modal deploy deploy/modal_app.py"
   },
   "dependencies": {
     "three": "^0.186.1"

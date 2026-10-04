@@ -108,6 +108,18 @@ the way you want and run `__app.saveThumb()` in the console. A dev-only Vite mid
 
 ## Deploying
 
+### Modal
+
+```bash
+npm run deploy:modal
+```
+
+This builds `dist/` and deploys `deploy/modal_app.py`, a small FastAPI static-file app, as the Modal app `chips-3d`.
+The URL is `https://<workspace>--chips-3d.modal.run`. It scales to zero when idle, so the first visit after a quiet
+spell takes a few seconds to cold-start.
+
+### Cloudflare Pages
+
 This is a static Vite build. `npm run deploy` publishes it to Cloudflare Pages as project `blackwell3d` (after a
 one-time `npx wrangler login`). `.github/workflows/deploy.yml` deploys every push to `main` once the
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` secrets are set. Until then it builds and skips the deploy step.
